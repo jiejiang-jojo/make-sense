@@ -1,0 +1,4 @@
+xmljson
+pyserial
+requests
+pycrypto

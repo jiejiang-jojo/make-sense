@@ -1,0 +1,6 @@
+uwsgi
+flask
+elasticsearch
+sqlalchemy
+psycopg2
+pycrypto
