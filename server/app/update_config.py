@@ -48,6 +48,7 @@ def update_config(filename):
     try:
         with open(filename) as fin:
             config = yaml.load(fin)
+        assert config is not None
     except:
         config = {
             "aes_key": "--",
@@ -60,7 +61,7 @@ def update_config(filename):
             "es_servers": ["elasticsearch"],
             "es_index": "sensor-suite",
             "es_type": "sensor-record",
-            "server_url": "http://localhost:5000/energy-record"
+            "server_url": "http://localhost/energy-record"
         }
     config = update_aes(update_pgpass(config))
     with open(filename, 'w') as fout:
