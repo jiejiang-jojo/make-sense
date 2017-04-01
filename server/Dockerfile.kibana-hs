@@ -1,6 +1,7 @@
-From docker.elastic.co/kibana/kibana:5.3.0
+From kibana:5.2.2
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install patch
 ADD ./images/homesense-logo-text.svg /usr/share/kibana/src/ui/public/images/homesense-logo-text.svg
 ADD ./patches/homesense-kibana.patch /usr/share/kibana/homesense-kibana.patch
-RUN patch -p1 < homesense-kibana.patch
+RUN cd /usr/share/kibana && patch -p1 < homesense-kibana.patch
 RUN rm -rf /usr/share/kibana/optimize/bundles/*
