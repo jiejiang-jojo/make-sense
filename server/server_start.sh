@@ -5,7 +5,7 @@ DB=db-hs
 KB=kibana-hs
 APP=server-hs
 
-ES_IMG=docker.elastic.co/elasticsearch/elasticsearch:5.3.0
+ES_IMG=elasticsearch:5.2.2
 DB_IMG=postgres-hs
 KB_IMG=kibana-hs
 APP_IMG=server-hs
