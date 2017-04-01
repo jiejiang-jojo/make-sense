@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, DateTime, Float, Text
 from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import TransportError
 import server_config as sc
 
 Base = declarative_base()
@@ -39,8 +40,6 @@ class EnergyReading(Base):  # pylint: disable-msg=no-init,too-few-public-methods
     radio_id = Column('e_radio_id', Text)
     energy_type = Column('energy_type', Integer)
     watts = Column('watts', Integer)
-
-
 
 
 TABLES = {
@@ -96,10 +95,17 @@ def insert_to_db(records, rec_type):
     sc.get_db().execute(TABLES[rec_type].insert(), process_records(records, PROCESSORS[rec_type]))
 
 
-def insert_to_es(records, rec_type):
+def insert_to_es(records, rec_type, retries=3):
     data = process_records(records, PROCESSORS[rec_type])
     bulk_data = list()
     for rec in data:
         bulk_data.append(sc.get_es_op())
         bulk_data.append(rec)
-    sc.get_es().bulk(body=bulk_data)
+    while retries > 0:
+        try:
+            sc.get_es().bulk(body=bulk_data)
+            return
+        except TransportError as err:
+            print err.status_code
+            retries -= 1
+    raise err
