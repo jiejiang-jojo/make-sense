@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE=${1:-server-hs}
+IMAGE=$1
 
 IMAGES="server-hs kibana-hs elasticsearch-hs postgres-hs"
 
