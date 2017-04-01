@@ -4,6 +4,12 @@ ES=elasticsearch-hs
 DB=db-hs
 KB=kibana-hs
 APP=server-hs
+
+ES_IMG=elasticsearch:5
+DB_IMG=postgres:9.6
+KB_IMG=kibana-hs
+APP_IMG=server-hs
+
 RAND="$(openssl rand -base64 32)"
 DB_PASSWD="${RAND:0:10}"
 SERVER_PORT=${1:-80}
@@ -21,20 +27,20 @@ function container_ip(){
 function create_container(){
   case $1 in
     e)
-      docker run --name $ES -d elasticsearch
+      docker run --name $ES -d $ES_IMG
       ;;
     d)
-      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -d postgres
+      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -d $DB_IMG
       sleep 3
       docker exec $DB sed -i 's/^max_connections.*/max_connections = 500/' /var/lib/postgresql/data/postgresql.conf
       docker restart $DB
       ;;
     k)
-      docker run --name $KB --link ${ES}:elasticsearch -p 127.0.0.1:5601:5601 -d kibana
+      docker run --name $KB --link ${ES}:elasticsearch -p 127.0.0.1:5601:5601 -d $KB_IMG
       ;;
     s)
       touch ./config.json
-      docker run --name $APP --link ${ES}:elasticsearch --link ${DB}:postgres -v $(pwd)/config.json:/app/config.json -p ${SERVER_PORT}:80 -d server-hs
+      docker run --name $APP --link ${ES}:elasticsearch --link ${DB}:postgres -v $(pwd)/config.json:/app/config.json -p ${SERVER_PORT}:80 -d $APP_IMG
       ;;
     *)
       echo "Unknow container"
