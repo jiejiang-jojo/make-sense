@@ -1,0 +1,4 @@
+From elasticsearch:5
+
+ADD ./images/logo.svg /usr/share/kibana/src/ui/public/images/kibana.svg
+ADD ./js/refresh_intervals.js /usr/share/kibana/src/ui/public/timepicker/refresh_intervals.js
