@@ -7,11 +7,11 @@ Description: Generating passwords for config files
 
 import os
 import sys
-import json
 import time
 from random import choice
 import sqlalchemy as sa
 from data_manager import Base
+import yaml
 from util import get_db_url
 
 def char_range(a, z):
@@ -47,7 +47,7 @@ def update_pgpass(config):
 def update_config(filename):
     try:
         with open(filename) as fin:
-            config = json.load(fin)
+            config = yaml.load(fin)
     except:
         config = {
             "aes_key": "--",
@@ -64,7 +64,10 @@ def update_config(filename):
         }
     config = update_aes(update_pgpass(config))
     with open(filename, 'w') as fout:
-        json.dump(config, fout)
+        fout.write(yaml.dump(config,
+                             default_flow_style=False,
+                             allow_unicode=True,
+                             encoding = None))
     return config
 
 

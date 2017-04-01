@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import json
 import threading
 import sqlalchemy as sa
 from elasticsearch import Elasticsearch
 from Crypto.Cipher import AES
 from flask import Flask
 from flask import g
+import yaml
 from util import get_db_url
 
 APP = Flask(__name__)
 
-CONFIG_FILE = './config.json'
+CONFIG_FILE = './config.yml'
 
 THREAD_STACK = threading.local()
 
@@ -34,7 +34,7 @@ def get_config():
     """ Read configuration from the file and cache it with flask
     """
     with open(CONFIG_FILE) as fin:
-        return json.load(fin)
+        return yaml.load(fin)
 
 
 def get_crypter():
