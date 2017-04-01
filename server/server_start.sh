@@ -5,8 +5,8 @@ DB=db-hs
 KB=kibana-hs
 APP=server-hs
 
-ES_IMG=elasticsearch:5
-DB_IMG=postgres:9.6
+ES_IMG=docker.elastic.co/elasticsearch/elasticsearch:5.3.0
+DB_IMG=postgres-hs
 KB_IMG=kibana-hs
 APP_IMG=server-hs
 
@@ -31,12 +31,9 @@ function create_container(){
       ;;
     d)
       docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -d $DB_IMG
-      sleep 3
-      docker exec $DB sed -i 's/^max_connections.*/max_connections = 500/' /var/lib/postgresql/data/postgresql.conf
-      docker restart $DB
       ;;
     k)
-      docker run --name $KB --link ${ES}:elasticsearch -p 127.0.0.1:5601:5601 -d $KB_IMG
+      docker run --name $KB --link ${ES}:elasticsearch -p 5601:5601 -d $KB_IMG
       ;;
     s)
       touch ./config.json
