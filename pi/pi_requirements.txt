@@ -2,3 +2,4 @@ xmljson
 pyserial
 requests
 pycrypto
+pyyaml

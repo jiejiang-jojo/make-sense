@@ -11,9 +11,10 @@ from xml.etree.ElementTree import fromstring
 from xmljson import badgerfish as bf
 from serial import Serial
 from logging_handlers import encode
+import yaml
 
 
-CONFIG = './config.json'
+CONFIG = './config.yml'
 
 
 def parse_record(line, appendix):
@@ -37,7 +38,7 @@ def main():
     """ reading and forwarding
     """
     with open(CONFIG) as fin:
-        config = json.load(fin)
+        config = yaml.load(fin)
         logging.config.dictConfig(get_logging_config(config))
         household = config['household']
     logger = logging.getLogger('SensorReading')
@@ -75,7 +76,7 @@ def mock_records():
 
 def mock_main():
     with open(CONFIG) as fin:
-        logging.config.dictConfig(get_logging_config(json.load(fin)))
+        logging.config.dictConfig(get_logging_config(yaml.load(fin)))
     logger = logging.getLogger('SensorReading')
     for rec in throttled_mock_record():
         logger.info(json.dumps(rec))
@@ -83,7 +84,7 @@ def mock_main():
 
 def mock_payload():
     with open(CONFIG) as fin:
-        config = json.load(fin)
+        config = yaml.load(fin)
     aes_key, aes_iv = config['aes_key'], config['aes_iv']
     data = [rec for _, rec in zip(range(10), mock_records())]
     print encode(json.dumps(data), aes_key, aes_iv)
