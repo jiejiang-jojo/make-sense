@@ -23,13 +23,13 @@ diff --git a/src/ui/public/timepicker/refresh_intervals.js b/src/ui/public/timep
 +++ b/src/ui/public/timepicker/refresh_intervals.js	2017-04-01 22:05:20.203835666 +0000
 @@ -4,10 +4,10 @@
  module.constant('refreshIntervals', [
-   { value : 0, display: 'Off', section: 0 },
+   { value : 0, display: 'Off', section: 0},
  
-+  { value : 1000, display: '1 second', section: 1 },
-   { value : 5000, display: '5 seconds', section: 1 },
-   { value : 10000, display: '10 seconds', section: 1 },
-   { value : 30000, display: '30 seconds', section: 1 },
--  { value : 45000, display: '45 seconds', section: 1 },
++  { value : 1000, display: '1 second', section: 1},
+   { value : 5000, display: '5 seconds', section: 1},
+   { value : 10000, display: '10 seconds', section: 1},
+   { value : 30000, display: '30 seconds', section: 1},
+-  { value : 45000, display: '45 seconds', section: 1},
  
-   { value : 60000, display: '1 minute', section: 2 },
-   { value : 300000, display: '5 minutes', section: 2 },
+   { value : 60000, display: '1 minute', section: 2},
+   { value : 300000, display: '5 minutes', section: 2},
