@@ -4,3 +4,4 @@ elasticsearch
 sqlalchemy
 psycopg2
 pycrypto
+pyyaml
