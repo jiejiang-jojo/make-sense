@@ -1,5 +1,6 @@
 From docker.elastic.co/kibana/kibana:5.3.0
 
-ADD ./images/logo.svg /usr/share/kibana/src/ui/public/images/kibana.svg
-ADD ./js/refresh_intervals.js /usr/share/kibana/src/ui/public/timepicker/refresh_intervals.js
+ADD ./images/homesense-logo-text.svg /usr/share/kibana/src/ui/public/images/homesense-logo-text.svg
+ADD ./patches/homesense-kibana.patch /usr/share/kibana/homesense-kibana.patch
+RUN patch -p1 < homesense-kibana.patch
 RUN rm -rf /usr/share/kibana/optimize/bundles/*
