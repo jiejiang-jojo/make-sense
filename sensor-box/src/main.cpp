@@ -15,14 +15,9 @@
 #include "n25q.h"
 #include "aes.h"
 #include "base64.h"
+#include "config.h"
 
-#define BOX_ID 108                         //sensor box ID
-#define SERVER_IP "YOUR_SERVER_IP"        //data server IP
-#define PRIVACY_MODE 1                    //privacy mode gesture
-#define RECORDSTR_LEN 720
-#define HTTP_LEN 1024
-#define BUFLEN 266
-#define PACKET_LEN 6
+#define ESP_LINK_SERIAL_BAUD 115200
 
 #define DEBUG
 #ifdef DEBUG
@@ -53,9 +48,9 @@ float sound_counter = 0;
 float range_read = 0;
 
 // 128bit key
-char key[] = "YOUR_ENCRYPTION_KEY";
+char key[] = AES_KEY;
 //128bit initialization vector
-char iv[]  = "YOUR_ENCRYPTION_IV";
+char iv[]  = AES_IV;
 
 //different kinds of sensor module data
 //corresponds to one page
@@ -70,7 +65,7 @@ union sensor_data{
         int sample_range;
         int sample_sound;
         int sample_particulate;
-    }entries[8];
+    }entries[PACKET_LEN];
     uint8_t bytes[256];
 }recordsW, recordsR;
 
@@ -162,7 +157,7 @@ int get_wifiStatus(){
 
 /*set up wifi connection to data server*/
 int setup_wifi() {
-    serial.baud(115200);   // the baud rate here needs to match the esp-link config
+    serial.baud(ESP_LINK_SERIAL_BAUD);   // the baud rate here needs to match the esp-link config
     DBG("EL-Client starting!\n\r");
 
     // Sync-up with esp-link, this is required at the start of any sketch and initializes the
@@ -305,7 +300,7 @@ void get_allData(){
         if(write_pointer==FLASH_SIZE)
             write_pointer = 0;
 
-        Thread::wait(3000);
+        Thread::wait(SAMPLE_RATE);
     }
 }
 
@@ -406,7 +401,7 @@ void check_gesture(){
             setup_gesture();
             gesture_flag = 0;
         }
-        Thread::wait(10);
+        Thread::wait(GESTURE_SAMPLE_RATE);
     }
 }
 
@@ -424,7 +419,7 @@ void get_highFrequencyData(){
             if(range_read>temp_range)
                 range_read = temp_range;
         }
-        Thread::wait(1);
+        Thread::wait(HIGHFREQ_SAMPLE_RATE);
     }
 }
 
@@ -461,6 +456,6 @@ main(){
         //if wifi is connected and there is data packet in the queue
         if(wifiConnected && queue_size>0)
             send_data("/box-record");
-        Thread::wait(2000);
+        Thread::wait(POST_RATE);
     }
 }
