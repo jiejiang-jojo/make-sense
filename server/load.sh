@@ -11,7 +11,7 @@ function load_image() {
 
 if [ -z "$1" ]; then
   for img in $IMAGES; do
-    save_image $img
+    load_image $img
   done
 else
   save_image $1
