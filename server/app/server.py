@@ -22,7 +22,6 @@ def decode_record(data):
     payload =  buf[:end_sym + 2]
     # The following line seems redundant
     # result = record.replace('\n', '').replace("'", '"')
-    print payload
     records = json.loads(payload)
     return records
 
