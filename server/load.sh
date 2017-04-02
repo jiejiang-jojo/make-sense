@@ -1,6 +1,18 @@
 #!/bin/bash
 
-SRC=${1:-server-hs.img.gz}
-echo "Going to load $SRC in 3 seconds..."
-sleep 3
-zcat "$SRC" | docker load
+IMAGES="server-hs.img.gz kibana-hs.img.gz postgres-hs.img.gz elasticsearch-hs.img.gz"
+
+function load_image() {
+  SRC=$1
+  echo "Loading $SRC ..."
+  sleep 3
+  zcat "$SRC" | docker load
+}
+
+if [ -z "$1" ]; then
+  for img in $IMAGES; do
+    save_image $img
+  done
+else
+  save_image $1
+fi
