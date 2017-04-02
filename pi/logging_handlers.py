@@ -130,7 +130,7 @@ def encode(data, aes_key, aes_iv):
 class AccumulatedHTTPHandler(logging.Handler):
     """ Sending log to a HTTP server
     """
-    def __init__(self, url, aes_key, aes_iv, bufsize=10, method="POST"):
+    def __init__(self, url, aes_key, aes_iv, bufsize=5, method="POST"):
         """
         """
         super(AccumulatedHTTPHandler, self).__init__()

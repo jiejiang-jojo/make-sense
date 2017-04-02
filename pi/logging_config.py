@@ -39,7 +39,7 @@ def get_logging_config(config):
                 'aes_key': config['aes_key'],
                 'aes_iv': config['aes_iv'],
                 'url': config['server_url'],
-                'bufsize': config.get('http_buf_size', 10),
+                'bufsize': config.get('http_buf_size', None),
             }
         },
         'loggers': {
