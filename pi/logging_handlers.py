@@ -85,22 +85,23 @@ class TimedRotatingCompressedFileHandler(TimedRotatingFileHandler):
         start_compress(dfn)
 
 
-def send_http_request(method, url, data):
+def send_http_request(method, url, data, timeout):
     """ Send the data to the server at URL
 
     :method: 'POST' or 'GET'
     :url: The endpoint url for submtting the data
     :data: the logging records
+    :timeout: the seconds requests will wait before timeout
     :returns: TODO
 
     """
     if method == 'POST':
-        rq.post(url, data=data)
+        rq.post(url, data=data, timeout=timeout)
     elif method == 'GET':
-        rq.get(url, data=data)
+        rq.get(url, data=data, timeout=timeout)
 
 
-def start_send_http_request(method, url, data):
+def start_send_http_request(method, url, data, timeout):
     """ Submitting data in a separate process
 
     :method: 'POST' or 'GET'
@@ -109,7 +110,7 @@ def start_send_http_request(method, url, data):
     :returns: None
 
     """
-    proc = Process(target=send_http_request, args=(method, url, data))
+    proc = Process(target=send_http_request, args=(method, url, data, timeout))
     proc.start()
 
 
@@ -130,7 +131,7 @@ def encode(data, aes_key, aes_iv):
 class AccumulatedHTTPHandler(logging.Handler):
     """ Sending log to a HTTP server
     """
-    def __init__(self, url, aes_key, aes_iv, bufsize=5, method="POST"):
+    def __init__(self, url, aes_key, aes_iv, bufsize=5, method="POST", timeout=15):
         """
         """
         super(AccumulatedHTTPHandler, self).__init__()
@@ -143,6 +144,7 @@ class AccumulatedHTTPHandler(logging.Handler):
         self.method = method
         self.bufsize = bufsize
         self.buffer = list()
+        self.timeout = timeout
 
     def emit(self, record):
         """ Accumulating a record or send the accumulated records to the HTTP
@@ -152,7 +154,7 @@ class AccumulatedHTTPHandler(logging.Handler):
             self.buffer.append(json.loads(self.format(record)))
             if len(self.buffer) >= self.bufsize:
                 payload = encode(json.dumps(self.buffer), self.aes_key, self.aes_iv)
-                start_send_http_request(self.method, self.url, payload)
+                start_send_http_request(self.method, self.url, payload, timeout=self.timeout)
                 self.buffer = list()
         except (KeyboardInterrupt, SystemExit):
             raise
