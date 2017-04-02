@@ -1,0 +1,11 @@
+thread_pool:
+  index:
+    queue_size: 1000
+
+  bulk:
+    queue_size: 100
+
+indices:
+  memory:
+    index_buffer_size:
+      30%

@@ -1,1 +1,4 @@
 From elasticsearch:5.2.2
+
+ADD ./patches/elasticsearch.yml /usr/share/elasticsearch/config/elasticsearch.yml.addon
+RUN cat config/elasticsearch.yml.addon >> config/elasticsearch.yml
