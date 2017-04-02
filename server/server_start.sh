@@ -12,7 +12,8 @@ APP_IMG=server-hs
 
 RAND="$(openssl rand -base64 32)"
 DB_PASSWD="${RAND:0:10}"
-SERVER_PORT=${1:-80}
+VOLUME=${1:-/mnt/data}
+SERVER_PORT=80
 
 function container_exists(){
   container=$1
@@ -27,10 +28,10 @@ function container_ip(){
 function create_container(){
   case $1 in
     e)
-      docker run --name $ES -d $ES_IMG
+      docker run --name $ES -v ${VOLUME}/elasticsearch:/usr/share/elasticsearch/data -d $ES_IMG
       ;;
     d)
-      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -d $DB_IMG
+      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -v ${VOLUME}/postgres:/var/lib/postgresql/data -d $DB_IMG
       ;;
     k)
       docker run --name $KB --link ${ES}:elasticsearch -p 5601:5601 -d $KB_IMG
