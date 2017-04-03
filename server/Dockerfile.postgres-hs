@@ -1,3 +1,4 @@
 From postgres:9.6
 
+ADD ./patches/pgpass_persist.sh /docker-entrypoint-initdb.d/pgpass_persist.sh
 RUN sed -i 's/^#max_connections.*/max_connections = 500/' /usr/share/postgresql/postgresql.conf.sample
