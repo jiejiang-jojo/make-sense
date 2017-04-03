@@ -28,13 +28,13 @@ def decode_record(data):
 @APP.route('/box-record', methods=['POST'])
 def parse_box_request_record():
     records = decode_record(request.data)
-    data_manager.insert_to_db(records, 'box')
     data_manager.insert_to_es(records, 'box')
+    data_manager.insert_to_db(records, 'box')
     return "ok"
 
 @APP.route('/energy-record', methods=['POST'])
 def parse_energy_request_record():
     records = decode_record(request.data)
-    data_manager.insert_to_db(records, 'energy')
     data_manager.insert_to_es(records, 'energy')
+    data_manager.insert_to_db(records, 'energy')
     return "ok"
