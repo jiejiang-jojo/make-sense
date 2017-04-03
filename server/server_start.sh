@@ -31,7 +31,7 @@ function create_container(){
       docker run --name $ES -v ${VOLUME}/elasticsearch:/usr/share/elasticsearch/data -d $ES_IMG
       ;;
     d)
-      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -v ${VOLUME}/postgres:/var/lib/postgresql/data -d $DB_IMG
+      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -v ${VOLUME}/postgres:/var/lib/postgresql/data -v $(pwd)/config.yml:/config.yml -d $DB_IMG
       ;;
     k)
       docker run --name $KB --link ${ES}:elasticsearch -p 5601:5601 -d $KB_IMG
