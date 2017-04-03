@@ -35,12 +35,14 @@ def update_aes(config):
     return config
 
 def update_pgpass(config):
-    pgpass = os.environ.get('POSTGRES_ENV_POSTGRES_PASSWORD', None)
-    if pgpass is not None:
-        config['db_password'] = pgpass
-    else:
+    alt_passwd = os.environ.get('POSTGRES_ENV_POSTGRES_PASSWORD', None)
+    if alt_passwd is None:
         print >>sys.stderr, \
             "WARNING: No db is linked to this container, try --link some-postgres:postgres"
+    while try_connect(config) is None:
+        print "Try connect with both passwords."
+        alt_passwd, config['db_password'] = config['db_password'], alt_passwd
+        time.sleep(1)
     return config
 
 
@@ -72,17 +74,22 @@ def update_config(filename):
     return config
 
 
-def init_db(config):
+def try_connect(config):
     engine = sa.create_engine(get_db_url(config, 'postgres'),
                               isolation_level='AUTOCOMMIT')
-    connected = False
-    while not connected:
-        try:
-            engine.execute('select 1')
-            connected = True
-        except:
-            print 'Waiting for Postgres'
-            time.sleep(1)
+    try:
+        engine.execute('select 1')
+        return engine
+    except:
+        return None
+
+def init_db(config):
+    engine = try_connect(config)
+    while engine is None:
+        print 'Waiting for Postgres'
+        time.sleep(1)
+        engine = try_connect(config)
+
     db_name = config['db_name']
     sql = "select count(*) from pg_catalog.pg_database where datname = '{0}';"
     if engine.execute(sql.format(db_name)).fetchone()[0] == 0:
