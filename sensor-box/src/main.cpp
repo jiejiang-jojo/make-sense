@@ -15,16 +15,12 @@
 #include "n25q.h"
 #include "aes.h"
 #include "base64.h"
+
 #include "config.h"
+#include "util.h"
 
 #define ESP_LINK_SERIAL_BAUD 115200
 
-#define DEBUG
-#ifdef DEBUG
-#define DBG(...) printf (__VA_ARGS__)
-#else
-#define DBG(...) (void)0
-#endif
 
 //LED lights and vibration motor
 DigitalOut blueLed(P2_3);
@@ -245,8 +241,8 @@ void read_sensors(int num){
         setup_time();
         recordsW.entries[num].seconds = time(NULL); //Timestamp
     }
-    recordsW.entries[num].sample_ctemp = read_ctemp();
-    recordsW.entries[num].sample_humid = read_humid();
+    recordsW.entries[num].sample_ctemp = get_bluetooth_signal(0);
+    recordsW.entries[num].sample_humid = get_bluetooth_signal(1);
     recordsW.entries[num].sample_gesture = gesture_read;
     recordsW.entries[num].sample_light = read_light();
     //try to use integer to represent float.
@@ -423,7 +419,7 @@ void get_highFrequencyData(){
     }
 }
 
-main(){
+int main(void){
 
     DBG("\nStarting\n\r");
 
@@ -449,6 +445,8 @@ main(){
     Thread thread2(get_highFrequencyData);
 
     Thread thread3(check_gesture, osPriorityHigh);
+
+    Thread thread4(bluetooth_scan_loop);
 
     while(1){
         //process any callbacks coming from esp_link
