@@ -29,7 +29,7 @@ def get_logging_config(config):
                 'class': 'logging_handlers.TimedRotatingCompressedFileHandler',
                 'level': 'INFO',
                 'formatter': 'message_only',
-                'when': 'M',
+                'when': 'H',
                 'filename': config.get('filename', './energy/log'),
             },
             'http': {
