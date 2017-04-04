@@ -25,6 +25,11 @@ class SensorboxReading(Base):  # pylint: disable-msg=no-init,too-few-public-meth
     dust_density = Column('dust_density', Float)
     sound = Column('sound', Float)
     range = Column('range', Float)
+    bluetooth_0 = Column('bluetooth_0', Float)
+    bluetooth_1 = Column('bluetooth_1', Float)
+    bluetooth_2 = Column('bluetooth_2', Float)
+    bluetooth_3 = Column('bluetooth_3', Float)
+    bluetooth_4 = Column('bluetooth_4', Float)
 
 
 class EnergyReading(Base):  # pylint: disable-msg=no-init,too-few-public-methods
@@ -69,7 +74,12 @@ MAPPINGS = {
         "L": "light",
         "D": "dust_density",
         "S": "sound",
-        "R": "range"
+        "R": "range",
+        "M0": "bluetooth_0",
+        "M1": "bluetooth_1",
+        "M2": "bluetooth_2",
+        "M3": "bluetooth_3",
+        "M4": "bluetooth_4"
     }
 }
 
