@@ -1,7 +1,7 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-#include "inttypes.h"
+#include "BGLib.h"
 
 #define DEBUG
 #ifdef DEBUG
@@ -12,6 +12,8 @@
 
 int char2int(char input);
 
-void hex2bin(const char* src, uint8_t * target);
+void str2mac(const char * src, uint8 * target);
+
+void print_mac(const uint8 * mac);
 
 #endif

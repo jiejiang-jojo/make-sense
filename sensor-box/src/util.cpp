@@ -14,14 +14,16 @@ int char2int(char input)
   return -1;
 }
 
-// This function assumes src to be a zero terminated sanitized string with
-// an even number of [0-9a-f] characters, and target to be sufficiently large
-void hex2bin(const char* src, uint8_t * target)
+// This function assumes src an array of 12 characters of 
+// [0-9a-fA-F] and target to be of length 6 bytes.
+void str2mac(const char * src, uint8 * target)
 {
-  target += 6; //converting the MAC to the white list format (big endian)
-  while(*src && src[1])
-  {
-    *(target--) = char2int(*src)*16 + char2int(src[1]);
-    src += 2;
-  }
+  //converting the MAC to the white list format (big endian)
+  for(int i=0; i<6; i++)
+    *(target + 5 - i) = (char2int(src[i * 2])<<4) + char2int(src[i * 2 + 1]);
+}
+
+void print_mac(uint8 * mac)
+{
+  DBG("%02X%02X%02X%02X%02X%02X", mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]);
 }

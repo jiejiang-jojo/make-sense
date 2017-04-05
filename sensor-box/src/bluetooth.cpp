@@ -23,10 +23,10 @@ const char * bluetooth_macs[] = {
   BLUETOOTH_MAC_4
 };
 
-BluetoothReading bt_reading(bluetooth_macs, ble112);
+BluetoothReading bt_reading(BLUETOOTH_NUM, bluetooth_macs, ble112);
 
 int read_bluetooth_signal(int device){
-  if (device >= bt_reading.number_of_devices)
+  if (device >= BLUETOOTH_NUM)
     return BLUETOOTH_RSSI_MIN;
 
   time_t current_time = time(NULL);
@@ -50,29 +50,29 @@ void my_ble_evt_system_boot(const ble_msg_system_boot_evt_t *msg) {
 }
 
 void my_evt_gap_scan_response(const ble_msg_gap_scan_response_evt_t *msg) {
-    DBG("###\tgap_scan_response: { ");
-    DBG("rssi: "); DBG("%d",msg -> rssi);
-    for (int i=0; i<bt_reading.number_of_devices; i++){
+    for (int i=0; i<BLUETOOTH_NUM; i++){
       if (memcmp(bt_reading.macs[i].addr, msg->sender.addr, 6) == 0){
         bt_reading.rssi[i] = msg->rssi;
         bt_reading.lastseen[i] = time(NULL);
       }
     }
+    DBG("###\tgap_scan_response: { ");
+    DBG("rssi: "); DBG("%d",msg -> rssi);
     DBG(", packet_type: "); DBG("%X",(uint8_t)msg -> packet_type);
     DBG(", sender: ");
     // this is a "bd_addr" data type, which is a 6-byte uint8_t array
     for (uint8_t i = 0; i < 6; i++) {
         // if (msg -> sender.addr[i] < 16) putc('0');
-        DBG("%X",msg -> sender.addr[i]);
+        DBG("%02X",msg -> sender.addr[i]);
     }
-//    DBG(", address_type: "); DBG("%X",msg -> address_type);
-//    DBG(", bond: "); DBG("%X",msg -> bond);
-//    DBG(", data: ");
-//    // this is a "uint8array" data type, which is a length byte and a uint8_t* pointer
-//    for (uint8_t i = 0; i < msg -> data.len; i++) {
-//        if (msg -> data.data[i] < 16) putc('0');
-//        DBG("%X",msg -> data.data[i]);
-//    }
+    DBG(", address_type: "); DBG("%X",msg -> address_type);
+    DBG(", bond: "); DBG("%X",msg -> bond);
+    // DBG(", data: ");
+    // // this is a "uint8array" data type, which is a length byte and a uint8_t* pointer
+    // for (uint8_t i = 0; i < msg -> data.len; i++) {
+    //     if (msg -> data.data[i] < 16) putc('0');
+    //     DBG("%X",msg -> data.data[i]);
+    // }
     DBG(" }\r\n");
 }
 
@@ -149,11 +149,11 @@ void bluetooth_scan_loop() {
     ble112.ble_cmd_system_whitelist_clear();
     while (ble112.checkActivity(1000));
 
-    // for(int i=0; i<bt_reading.number_of_devices; i++) {
-    //   // append a mac adress to the whitelist
-    //   ble112.ble_cmd_system_whitelist_append(bt_reading.macs[i],0);
-    //   while (ble112.checkActivity(1000));
-    // }
+    for(int i=0; i<BLUETOOTH_NUM; i++) {
+      // append a mac adress to the whitelist
+      ble112.ble_cmd_system_whitelist_append(bt_reading.macs[i],0);
+      while (ble112.checkActivity(1000));
+    }
 
     // set scan policy for only scan devices in the whitelist
     ble112.ble_cmd_gap_set_filtering(BGLIB_GAP_SCAN_POLICY_WHITELIST,BGLIB_GAP_ADV_POLICY_ALL,1); while (ble112.checkActivity(1000));
