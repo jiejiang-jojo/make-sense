@@ -15,18 +15,19 @@
 #include "n25q.h"
 #include "aes.h"
 #include "base64.h"
+#include "led.h"
+#include "wifi.h"
 
-#include "config.h"
 #include "util.h"
+#include "config.h"
 
-#define ESP_LINK_SERIAL_BAUD 115200
+//Serial port to PC debugging
+Serial pc(USBTX, USBRX);
 
+//LED lights
+LED led(P2_5, P2_4, P2_3);
 
-//LED lights and vibration motor
-DigitalOut blueLed(P2_3);
-DigitalOut greenLed(P2_4);
-DigitalOut redLed(P2_5);
-DigitalOut vibr(P2_12);
+Wifi wifi(P4_28, P4_29, led);
 
 //Gesture interrupt
 InterruptIn gesture_INT(P2_13);
@@ -54,13 +55,18 @@ union sensor_data{
     struct modules{
 //        int box_id;
         int seconds;
-        int sample_ctemp;
-        int sample_humid;
-        int sample_gesture;
-        int sample_light;
-        int sample_range;
-        int sample_sound;
-        int sample_particulate;
+        int ctemp;
+        int humid;
+        int gesture;
+        int light;
+        int range;
+        int sound;
+        int dust;
+        int bluetooth_0;
+        int bluetooth_1;
+        int bluetooth_2;
+        int bluetooth_3;
+        int bluetooth_4;
     }entries[PACKET_LEN];
     uint8_t bytes[256];
 }recordsW, recordsR;
@@ -77,153 +83,6 @@ N25Q *flash;
 
 //Initialize a connection to esp-link using the normal hardware serial port
 //both for SLIP and for debug messages
-RawSerial serial(P4_28,P4_29);
-ELClient esp(&serial, &serial);
-
-// Initialize a REST client on the connection to esp-link
-ELClientRest rest(&esp);
-
-// Initialize CMD client (for GetTime)
-ELClientCmd cmd(&esp);
-
-bool wifiConnected = false;
-
-/*turn on the blue LED to indicate that the sensor box is powered*/
-void power_on(){
-    blueLed = 1;
-    greenLed = 0;
-    redLed = 0;
-}
-
-/*turn on the red LED to indicate that the sensor box is in privacy mode*/
-void privacy_on(){
-    blueLed = 0;
-    greenLed = 0;
-    redLed = 1;
-}
-
-/*turn on the green LED to indicate that the sensor box is connected to wifi*/
-void wifi_on(){
-    blueLed = 0;
-    greenLed = 1;
-    redLed = 0;
-}
-
-/*turn on the red LED to indicate that wifi is lost*/
-void wifi_off(){
-    blueLed = 0;
-    greenLed = 0;
-    redLed = 1;
-}
-
-/*turn off the green LED to indicate that the sensor box is off*/
-void LED_off(){
-    blueLed = 0;
-    greenLed = 0;
-    redLed = 0;
-}
-
-/* Callback made from esp-link to notify of wifi status changes
-Here we print something out and set a global flag*/
-void wifiCb(void *response) {
-  ELClientResponse *res = (ELClientResponse*)response;
-  if (res->argc() == 1) {
-    uint8_t status;
-    res->popArg(&status, 1);
-
-    if(status == STATION_GOT_IP) {
-      DBG("WIFI CONNECTED\n\r");
-      wifiConnected = true;
-    } else {
-      DBG("WIFI NOT READY: ");
-      DBG("%d\n\r", status);
-      wifiConnected = false;
-    }
-  }
-}
-
-/*get wifi status*/
-int get_wifiStatus(){
-    esp.GetWifiStatus();
-    ELClientPacket *packet;
-    if ((packet=esp.WaitReturn()) != NULL)
-        return packet->value;
-    return 0;
-}
-
-/*set up wifi connection to data server*/
-int setup_wifi() {
-    serial.baud(ESP_LINK_SERIAL_BAUD);   // the baud rate here needs to match the esp-link config
-    DBG("EL-Client starting!\n\r");
-
-    // Sync-up with esp-link, this is required at the start of any sketch and initializes the
-    // callbacks to the wifi status change callback. The callback gets called with the initial
-    // status right after Sync() below completes.
-    esp.wifiCb.attach(wifiCb); // wifi status change callback, optional (delete if not desired)
-    bool ok;
-    do {
-        ok = esp.Sync();      // sync up with esp-link, blocks for up to 2 seconds
-        if (!ok) DBG("EL-Client sync failed!\n\r");
-    } while(!ok);
-    DBG("EL-Client synced!\n\r");
-
-    DBG("Wifi status: %d\n\r", get_wifiStatus());
-
-    // Set up the REST client to talk to "host", this doesn't connect to that server,
-    // it just sets-up stuff on the esp-link side
-    int err = rest.begin(SERVER_IP);
-    if (err != 0) {
-        DBG("REST begin failed: ");
-        DBG("%d\n\r", err);
-        setup_wifi();
-    }
-    DBG("EL-REST ready\n\r");
-    return 1;
-
-}
-
-///*when there is no connection to the data server, try to reconnect*/
-//void reconnect_wifi(){
-//    DBG("reconnecting...\n\r");
-//    //wifi status list:
-//    //enum {wifiIsDisconnected, wifiIsConnected, wifiGotIP}
-//    do{
-//        setup_wifi();
-//        esp.Process();
-//        DBG("wifiConnected:%d\n\r", wifiConnected);
-////        wait(5);
-//    }while(!wifiConnected || get_wifiStatus()!=2);
-//    wifiConnected = true;
-//    wifi_on();
-//}
-
-/*set the starting time of data collecction*/
-void setup_time() {
-    int currenttime;
-
-    esp.Process();
-
-    DBG("wifiConnected:%d\n\r", wifiConnected);
-
-    if(wifiConnected){
-        // Set RTC time
-        currenttime = cmd.GetTime();
-    } else{
-        setup_wifi();
-        setup_time();
-    }
-
-    DBG("current time int: %d\n\r", currenttime);
-    //re-get time in case that the timestamp is not valid (e.g., 1970-1-1)
-    if (currenttime<1471651200){
-        setup_time();
-    }
-
-    set_time(currenttime);
-    time_t seconds = time(NULL);
-    DBG("current time str: %s\n\r", ctime(&seconds));
-    wifi_on();
-}
 
 /*gesture interruption*/
 void detect_gesture() {
@@ -232,28 +91,43 @@ void detect_gesture() {
 //    gesture_INT.disable_irq();
 }
 
+int read_time(){
+
+    int timestamp = time(NULL); //Timestamp
+    //check whether it is a valid timestamp
+    if (timestamp<1471651200) {
+        wifi.setup_time();
+    }
+    return time(NULL); //Timestamp
+}
+
 /*read sensor data from all sensor modules*/
 void read_sensors(int num){
-//    recordsW.entries[num].box_id = BOX_ID;
-    recordsW.entries[num].seconds = time(NULL); //Timestamp
-    //check whether it is a valid timestamp
-    if (recordsW.entries[num].seconds<1471651200) {
-        setup_time();
-        recordsW.entries[num].seconds = time(NULL); //Timestamp
-    }
-    recordsW.entries[num].sample_ctemp = get_bluetooth_signal(0);
-    recordsW.entries[num].sample_humid = get_bluetooth_signal(1);
-    recordsW.entries[num].sample_gesture = gesture_read;
-    recordsW.entries[num].sample_light = read_light();
+    // BoxID will be appended when the records are sent to server
+    recordsW.entries[num].seconds = read_time();
+    recordsW.entries[num].ctemp = read_ctemp();
+    recordsW.entries[num].humid = read_humid();
+    recordsW.entries[num].light = read_light();
     //try to use integer to represent float.
-    recordsW.entries[num].sample_particulate = (int) (read_particulate()*10000);
-    recordsW.entries[num].sample_sound = (int) (cal_sound(sound_read, sound_read_sq, sound_counter)*1000);
+    recordsW.entries[num].dust = (int) (read_particulate()*10000);
+
+    recordsW.entries[num].sound = (int) (cal_sound(sound_read, sound_read_sq, sound_counter)*1000);
     sound_read = 0;
     sound_read_sq = 0;
     sound_counter = 0;
-    gesture_counter = 0;
-    recordsW.entries[num].sample_range = (int) range_read;
+
+    recordsW.entries[num].range = (int) range_read;
     range_read = 150;
+
+    recordsW.entries[num].bluetooth_0 = (int) read_bluetooth_signal(0);
+    recordsW.entries[num].bluetooth_1 = (int) read_bluetooth_signal(1);
+    recordsW.entries[num].bluetooth_2 = (int) read_bluetooth_signal(2);
+    recordsW.entries[num].bluetooth_3 = (int) read_bluetooth_signal(3);
+    recordsW.entries[num].bluetooth_4 = (int) read_bluetooth_signal(4);
+
+
+    recordsW.entries[num].gesture = gesture_read;
+    gesture_counter = 0;
 }
 
 /*Sensor Data Get Thread*/
@@ -267,12 +141,21 @@ void get_allData(){
                 Thread::wait(10); //3600000
             }
             gesture_read = 0;
-            wifi_on();
+            led.wifi_on();
         }
         DBG("%f %d\n\r", sound_counter, gesture_counter);
         read_sensors(counter);
-        DBG("%d %d %d %d %d %d %d %d\n\r", write_pointer, recordsW.entries[counter].sample_ctemp, recordsW.entries[counter].sample_humid, recordsW.entries[counter].sample_light, recordsW.entries[counter].seconds, recordsW.entries[counter].sample_range,
-                          recordsW.entries[counter].sample_particulate, recordsW.entries[counter].sample_sound);
+        DBG("%d %d %d %d %d %d %d %d %d %d\n\r", write_pointer,
+          recordsW.entries[counter].ctemp,
+          recordsW.entries[counter].humid,
+          recordsW.entries[counter].light,
+          recordsW.entries[counter].seconds,
+          recordsW.entries[counter].range,
+          recordsW.entries[counter].dust,
+          recordsW.entries[counter].sound,
+          recordsW.entries[counter].bluetooth_0,
+          recordsW.entries[counter].bluetooth_1
+        );
         counter++;
 
         //when there are PACKET_LEN records, pack them and program into a page
@@ -304,10 +187,19 @@ void get_allData(){
 char* format_data(int i){
         printf("formatting data ... \r\n");
         char* json_single = new char[256];
-        sprintf(json_single, "{\"B\": %d, \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d}",
-            BOX_ID, recordsR.entries[i].seconds, recordsR.entries[i].sample_ctemp,
-            recordsR.entries[i].sample_humid, recordsR.entries[i].sample_gesture, recordsR.entries[i].sample_light, recordsR.entries[i].sample_particulate/10000.0,
-            recordsR.entries[i].sample_sound/1000.0, recordsR.entries[i].sample_range);
+        sprintf(json_single, "{\"B\": %d, \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d, \"M0\": %d, \"M1\": %d}",
+            BOX_ID,
+            recordsR.entries[i].seconds,
+            recordsR.entries[i].ctemp,
+            recordsR.entries[i].humid,
+            recordsR.entries[i].gesture,
+            recordsR.entries[i].light,
+            recordsR.entries[i].dust/10000.0,
+            recordsR.entries[i].sound/1000.0,
+            recordsR.entries[i].range,
+            recordsR.entries[i].bluetooth_0,
+            recordsR.entries[i].bluetooth_1
+          );
         DBG("%s\n\r", json_single);
         return json_single;
 }
@@ -324,7 +216,7 @@ char* format_data(int i){
 void send_data(const char* path){
 
     // if we're connected make an HTTP request
-    if(wifiConnected) {
+    if(wifi.connected) {
 //        flash_mutex.lock();
         //read a page of data from the flash
         flash->ReadDataFromAddress(recordsR.bytes,read_pointer,PAGE_SIZE);
@@ -338,17 +230,17 @@ void send_data(const char* path){
         char* format_list = new char[RECORDSTR_LEN];
         uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
         char* http_body = new char[HTTP_LEN];
-        sprintf(format_list, "[%s,%s,%s,%s,%s,%s]", format_single[0], format_single[1], format_single[2],
-                format_single[3], format_single[4], format_single[5]);
+        sprintf(format_list, "[%s,%s,%s,%s,%s]", format_single[0], format_single[1], format_single[2],
+                format_single[3], format_single[4]);
 
         //data encryption using AES with mode CBC
         AES128_CBC_encrypt_buffer(cipher_list, (uint8_t*)format_list, RECORDSTR_LEN, (uint8_t*)key, (uint8_t*)iv);
 
         //encode the encrypted data bytes using base64
-        int length = base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
+        base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
 
         DBG("posting: %d\r\n", strlen(http_body));
-        rest.post(path, http_body);
+        wifi.rest.post(path, http_body);
 
         //release memory
         for(int i=0; i<PACKET_LEN; i++)
@@ -361,7 +253,7 @@ void send_data(const char* path){
         char response[BUFLEN];
         memset(response, 0, BUFLEN);
 //        flash_mutex.lock();
-        uint16_t code = rest.waitResponse(response, BUFLEN);
+        uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
 //        flash_mutex.unlock();
         if(code == HTTP_STATUS_OK){
             DBG("POST successful:\n\r");
@@ -387,7 +279,7 @@ void check_gesture(){
             gesture_read = read_gesture();
             if(gesture_read==PRIVACY_MODE||gesture_read==(PRIVACY_MODE+1)){
                 gesture_read = -1;
-                LED_off();
+                led.off();
             }
             setup_gesture();
             gesture_flag = 0;
@@ -421,11 +313,11 @@ void get_highFrequencyData(){
 
 int main(void){
 
-    DBG("\nStarting\n\r");
+    pc.printf("Starting\r\n");
 
     flash = new N25Q();
 
-    power_on();
+    led.power_on();
 
     setup_range();
 
@@ -435,24 +327,25 @@ int main(void){
     gesture_INT.fall(&detect_gesture);
 
     //set up wifi connection to the data server
-    setup_wifi();
+    wifi.setup();
 
     //time setup is after wifi setup (sntp)
-    setup_time();
+    wifi.setup_time();
 
-    Thread thread1(get_allData);
+    Thread thread[4];
+    thread[0].start(get_allData);
 
-    Thread thread2(get_highFrequencyData);
+    thread[1].start(get_highFrequencyData);
 
-    Thread thread3(check_gesture, osPriorityHigh);
+    thread[2].start(check_gesture);
 
-    Thread thread4(bluetooth_scan_loop);
+    thread[3].start(bluetooth_scan_loop);
 
     while(1){
         //process any callbacks coming from esp_link
-        esp.Process();
+        wifi.process();
         //if wifi is connected and there is data packet in the queue
-        if(wifiConnected && queue_size>0)
+        if(wifi.connected && queue_size>0)
             send_data("/box-record");
         Thread::wait(POST_RATE);
     }

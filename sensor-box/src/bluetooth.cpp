@@ -1,56 +1,62 @@
 #include "mbed.h"
 #include "BGLib.h"
 #include "util.h"
+#include "bluetooth.h"
+#include "config.h"
 
-#define _DEBUG_
 #define _BLE_RESET_
 
 #ifdef _BLE_RESET_
 DigitalOut RES_PIN(P0_5);
 #endif
 
-BufferedSoftSerial eggble(P0_0,P0_1); // tx, rx for Bluetooth
+BufferedSoftSerial eggble(P0_0, P0_1); // tx, rx for Bluetooth
 BGLib ble112((BufferedSoftSerial *)&eggble, 0, 1);
 
-// ##### Configuration of bands
-bd_addr_t BAND_MAC1 = {0xf7,0x98,0x7e,0x10,0x0f,0xc8};
-bd_addr_t BAND_MAC2 = {0xac,0x93,0x7e,0x10,0x0f,0xc8};
-int rssi[] = {0, 0};
-time_t lastseen[] = {0, 0};
 
-int get_bluetooth_signal(int device){
+// ##### Configuration of bands
+const char * bluetooth_macs[] = {
+  BLUETOOTH_MAC_0
+  BLUETOOTH_MAC_1
+  BLUETOOTH_MAC_2
+  BLUETOOTH_MAC_3
+  BLUETOOTH_MAC_4
+};
+
+BluetoothReading bt_reading(bluetooth_macs, ble112);
+
+int read_bluetooth_signal(int device){
+  if (device >= bt_reading.number_of_devices)
+    return BLUETOOTH_RSSI_MIN;
+
   time_t current_time = time(NULL);
-  if (current_time - lastseen[device] > 10)
-    return 0;
+  if (current_time - bt_reading.lastseen[device] > BLUETOOTH_ACTIVE_PERIOD)
+    return BLUETOOTH_RSSI_MIN;
   else
-    return rssi[device];
+    return bt_reading.rssi[device];
 
 }
 
 void my_ble_evt_system_boot(const ble_msg_system_boot_evt_t *msg) {
-    #ifdef _DEBUG_
-        DBG("###\tsystem_boot: { ");
-        DBG("major: "); DBG("%X",msg -> major);
-        DBG(", minor: "); DBG("%X",msg -> minor);
-        DBG(", patch: "); DBG("%X",msg -> patch);
-        DBG(", build: "); DBG("%X",msg -> build);
-        DBG(", ll_version: "); DBG("%X",msg -> ll_version);
-        DBG(", protocol_version: "); DBG("%X",msg -> protocol_version);
-        DBG(", hw: "); DBG("%X",msg -> hw);
-        DBG(" }\r\n");
-    #endif
+  DBG("###\tsystem_boot: { ");
+  DBG("major: "); DBG("%X",msg -> major);
+  DBG(", minor: "); DBG("%X",msg -> minor);
+  DBG(", patch: "); DBG("%X",msg -> patch);
+  DBG(", build: "); DBG("%X",msg -> build);
+  DBG(", ll_version: "); DBG("%X",msg -> ll_version);
+  DBG(", protocol_version: "); DBG("%X",msg -> protocol_version);
+  DBG(", hw: "); DBG("%X",msg -> hw);
+  DBG(" }\r\n");
 }
 
 void my_evt_gap_scan_response(const ble_msg_gap_scan_response_evt_t *msg) {
-    #ifdef _DEBUG_
     DBG("###\tgap_scan_response: { ");
     DBG("rssi: "); DBG("%d",msg -> rssi);
-    if (memcmp(BAND_MAC1.addr, msg->sender.addr, 6) == 0){
-      rssi[0] = msg->rssi;
-      lastseen[0] = time(NULL);
-    } else {
-      rssi[1] = msg->rssi;
-      lastseen[1] = time(NULL);
+    for (int i=0; i<bt_reading.number_of_devices; i++){
+      if (memcmp(bt_reading.macs[i].addr, msg->sender.addr, 6) == 0){
+        bt_reading.rssi[i] = msg->rssi;
+        bt_reading.lastseen[i] = time(NULL);
+      }
     }
     DBG(", packet_type: "); DBG("%X",(uint8_t)msg -> packet_type);
     DBG(", sender: ");
@@ -68,47 +74,36 @@ void my_evt_gap_scan_response(const ble_msg_gap_scan_response_evt_t *msg) {
 //        DBG("%X",msg -> data.data[i]);
 //    }
     DBG(" }\r\n");
-    #endif
 }
 
 void my_rsp_gap_set_scan_parameters(const ble_msg_gap_set_scan_parameters_rsp_t *msg) {
-    #ifdef _DEBUG_
     DBG("<--\tgap_set_scan_parameters: { ");
     DBG("result: "); DBG("%X",(uint16_t)msg -> result);
     DBG(" }\r\n");
-    #endif
 }
 
 void my_rsp_gap_discover(const ble_msg_gap_discover_rsp_t *msg) {
-    #ifdef _DEBUG_
     DBG("<--\tgap_discover: { ");
     DBG("result: "); DBG("%X",(uint16_t)msg -> result);
     DBG(" }\r\n");
-    #endif
 }
 
 void my_rsp_gap_set_filtering(const ble_msg_gap_set_filtering_rsp_t *msg) {
-    #ifdef _DEBUG_
     DBG("<--\tgap_filtering: { ");
     DBG("result: "); DBG("%X",(uint16_t)msg -> result);
     DBG(" }\r\n");
-    #endif
 }
 
 void my_rsp_system_whitelist_append(const ble_msg_system_whitelist_append_rsp_t *msg) {
-    #ifdef _DEBUG_
     DBG("<--\tgap_white list append: { ");
     DBG("result: "); DBG("%X",(uint16_t)msg -> result);
     DBG(" }\r\n");
-    #endif
 }
 
 void my_rsp_system_whitelist_clear(const ble_msg_system_whitelist_clear_rsp_t *msg) {
-    #ifdef _DEBUG_
     DBG("<--\tgap_white list clear: { ");
     DBG("result: "); DBG("%X",(uint16_t)msg -> result);
     DBG(" }\r\n");
-    #endif
 }
 
 void my_rsp_gap_end_procedure(const ble_msg_gap_end_procedure_rsp_t *msg) {
@@ -126,7 +121,7 @@ void bleinit(){
     #ifdef _BLE_RESET_
     RES_PIN=1;
     #endif
-    eggble.baud(38400);
+    eggble.baud(BLE_SERIAL_BAUD);
 
     // set up BGLib event handlers
     ble112.ble_evt_system_boot = my_ble_evt_system_boot;
@@ -154,12 +149,10 @@ void bluetooth_scan_loop() {
     ble112.ble_cmd_system_whitelist_clear();
     while (ble112.checkActivity(1000));
 
-    // for(int i=0; i<2; i++) {
-      // append a mac adress to the whitelist
-      ble112.ble_cmd_system_whitelist_append(BAND_MAC1,0);
-      while (ble112.checkActivity(1000));
-      ble112.ble_cmd_system_whitelist_append(BAND_MAC2,0);
-      while (ble112.checkActivity(1000));
+    // for(int i=0; i<bt_reading.number_of_devices; i++) {
+    //   // append a mac adress to the whitelist
+    //   ble112.ble_cmd_system_whitelist_append(bt_reading.macs[i],0);
+    //   while (ble112.checkActivity(1000));
     // }
 
     // set scan policy for only scan devices in the whitelist

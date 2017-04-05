@@ -3,26 +3,30 @@
 #include <string>
 #include <stdint.h>
 
-    void setup_gesture();
 
-    void setup_range();
+void setup_gesture();
 
-    int read_ctemp();
+void setup_range();
 
-    int read_humid();
+int read_ctemp();
 
-    int read_gesture();
+int read_humid();
 
-    uint16_t read_light();
+int read_gesture();
 
-    float read_particulate();
+uint16_t read_light();
 
-    float read_sound();
+float read_particulate();
 
-    float cal_sound(float value, float value_sq, float counter);
+float read_sound();
 
-    float read_range();
+float cal_sound(float value, float value_sq, float counter);
 
-    int get_bluetooth_signal(int device);
-    void bluetooth_scan_loop();
+float read_range();
+
+int read_bluetooth_signal(int device);
+
+void bluetooth_scan_loop();
+
+
 #endif

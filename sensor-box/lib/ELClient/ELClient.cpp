@@ -159,7 +159,7 @@ void ELClient::Request(const void* data, uint16_t len) {
     crc = crc16Add(*d, crc);
     d++;
   }
-  
+
 //  printf("data length: %d \n\r", len);
 
   // output padding
@@ -209,13 +209,13 @@ void ELClient::init() {
   _proto.isEsc = 0;
 }
 
-ELClient::ELClient(RawSerial* serial) :
+ELClient::ELClient(Serial* serial) :
 _serial(serial) {
   _debugEn = false;
   init();
 }
 
-ELClient::ELClient(RawSerial* serial, RawSerial* debug) :
+ELClient::ELClient(Serial* serial, Serial* debug) :
 _debug(debug), _serial(serial) {
   _debugEn = true;
   init();

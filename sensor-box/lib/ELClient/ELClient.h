@@ -50,11 +50,11 @@ typedef struct {
 class ELClient {
   public:
     // Create an esp-link client based on a stream and with a specified debug output stream.
-    ELClient(RawSerial* serial, RawSerial* debug);
+    ELClient(Serial* serial, Serial* debug);
     // Create an esp-link client based on a stream with no debug output
-    ELClient(RawSerial* serial);
+    ELClient(Serial* serial);
 
-    RawSerial* _debug;
+    Serial* _debug;
 
     //== Requests
     // Start a request. cmd is the command to execute, value is either the address of a function
@@ -90,7 +90,7 @@ class ELClient {
     FP<void, void*> wifiCb;
 
   //private:
-    RawSerial* _serial;
+    Serial* _serial;
     bool _debugEn;
     uint16_t crc;
     ELClientProtocol _proto;
