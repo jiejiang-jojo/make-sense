@@ -345,8 +345,8 @@ int main(void){
         //process any callbacks coming from esp_link
         wifi.process();
         //if wifi is connected and there is data packet in the queue
-        // if(wifi.connected && queue_size>0)
-        //     send_data("/box-record");
+        if(wifi.connected && queue_size>0)
+            send_data("/box-record");
         Thread::wait(POST_RATE);
     }
 }
