@@ -57,29 +57,3 @@ void ELClientResponse::popChar(char* buffer) {
 
   _arg_ptr += pad;
 }
-
-String ELClientResponse::popString() {
-  String ret;
-  uint16_t len = *(uint16_t*)_arg_ptr;
-  uint16_t pad = (4-((len+2)&3))&3;    // pad to next multiple of 4, including length
-  _arg_ptr += 2;
-  _arg_num++;
-
-  while (len--)
-    ret += (char)*_arg_ptr++;
-
-  _arg_ptr += pad;
-  return ret;
-}
-
-void ELClientResponse::popString(String* data) {
-  uint16_t len = *(uint16_t*)_arg_ptr;
-  uint16_t pad = (4-((len+2)&3))&3;    // pad to next multiple of 4, including length
-  _arg_ptr += 2;
-  _arg_num++;
-
-  while (len--)
-    data->concat((char)*_arg_ptr++);
-
-  _arg_ptr += pad;
-}

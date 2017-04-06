@@ -3,7 +3,6 @@
 #include "ELClient.h"
 #include "mbed.h"
 #include "Timer.h"
-#include "WString.h"
 
 #define SLIP_END  0300        // indicates end of packet
 #define SLIP_ESC  0333        // indicates byte stuffing
@@ -171,28 +170,6 @@ void ELClient::Request(const void* data, uint16_t len) {
   }
 }
 
-// Append a block of data located in flash as an argument to the request
-void ELClient::Request(const __FlashStringHelper* data, uint16_t len) {
-  // write the length
-  write(&len, 2);
-  crc = crc16Data((unsigned const char*)&len, 2, crc);
-
-  // output the data
-  PGM_P p = reinterpret_cast<PGM_P>(data);
-  for (uint16_t l=len; l>0; l--) {
-    uint8_t c = pgm_read_byte(p++);
-    write(c);
-    crc = crc16Add(c, crc);
-  }
-
-  // output padding
-  uint16_t pad = (4-(len&3))&3;
-  uint8_t temp = 0;
-  while (pad--) {
-    write(temp);
-    crc = crc16Add(temp, crc);
-  }
-}
 
 // Append the final CRC to the request and finish the request
 void ELClient::Request(void) {

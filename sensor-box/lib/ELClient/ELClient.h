@@ -63,8 +63,6 @@ class ELClient {
     void Request(uint16_t cmd, uint32_t value, uint16_t argc);
     // Add a data block as argument to a request
     void Request(const void* data, uint16_t len);
-    // Add a data block from flash as argument to a request
-    void Request(const __FlashStringHelper* data, uint16_t len);
     // Finish a request
     void Request(void);
 

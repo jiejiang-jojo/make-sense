@@ -7,7 +7,6 @@
 #define PACKED __attribute__ ((__packed__))
 #endif
 
-#include "WString.h"
 #include <stdint.h>
 
 typedef struct PACKED {
@@ -38,10 +37,6 @@ class ELClientResponse {
     // Pop one argument into a string buffer and append a null character. The buffer needs to
     // be large enough (argLen()+1)
     void popChar(char* buffer);
-    // Pop one argument into a String buffer
-    String popString();
-    // Pop one argument into a String buffer
-    void popString(String* data);
 
   private:
     uint16_t _arg_num;
