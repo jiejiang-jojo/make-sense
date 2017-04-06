@@ -2,6 +2,6 @@
 
 set -e
 
-python update_config.py config.yml
+python configure.py init_db
 
 exec uwsgi --ini /app/uwsgi.ini

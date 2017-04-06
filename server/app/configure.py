@@ -12,6 +12,7 @@ from random import choice
 import sqlalchemy as sa
 from data_manager import Base
 import yaml
+import click
 from util import get_db_url
 
 def char_range(a, z):
@@ -46,32 +47,44 @@ def update_pgpass(config):
     return config
 
 
+def create_pgpass(config):
+    config['db_password'] = mkpassword(16)
+    return config
+
+
 def update_config(filename):
-    try:
-        with open(filename) as fin:
-            config = yaml.load(fin)
-        assert config is not None
-    except:
-        config = {
-            "aes_key": "--",
-            "aes_iv": "--",
-            "db_user": "postgres",
-            "db_password": "--",
-            "db_server": "postgres",
-            "db_server_port": "5432",
-            "db_name": "HomeSenseDB",
-            "es_servers": ["elasticsearch"],
-            "es_index": "sensor-suite",
-            "es_type": "sensor-record",
-            "server_url": "http://localhost/energy-record"
-        }
-    config = update_aes(update_pgpass(config))
+    with open(filename) as fin:
+        config = yaml.load(fin)
+    config = update_pgpass(update_aes(config))
+    save_config(filename, config)
+    return config
+
+
+def create_config(filename):
+    config = {
+        "aes_key": "--",
+        "aes_iv": "--",
+        "db_user": "postgres",
+        "db_password": "--",
+        "db_server": "postgres",
+        "db_server_port": "5432",
+        "db_name": "HomeSenseDB",
+        "es_servers": ["elasticsearch"],
+        "es_index": "sensor-suite",
+        "es_type": "sensor-record",
+        "server_url": "http://localhost/energy-record"
+    }
+    config = update_aes(create_pgpass(config))
+    save_config(filename, config)
+    return config
+
+
+def save_config(filename, config):
     with open(filename, 'w') as fout:
         fout.write(yaml.dump(config,
                              default_flow_style=False,
                              allow_unicode=True,
                              encoding = None))
-    return config
 
 
 def try_connect(config):
@@ -99,7 +112,20 @@ def init_db(config):
     Base.metadata.create_all(sa.create_engine(get_db_url(config)))
 
 
+@click.command()
+@click.option('-c', '--config', 'filename', default="/app/config.yml",
+              help="the config file, default: /app/config.yml")
+@click.argument('action')
+def console(filename, action):
+    if action == 'create':
+        create_config(filename)
+    elif action == 'update':
+        update_config(filename)
+    elif action == 'initdb':
+        with open(filename) as fin:
+            config = yaml.load(fin)
+        init_db(config)
+
 
 if __name__ == "__main__":
-    config = update_config(sys.argv[1])
-    init_db(config)
+    console()

@@ -12,12 +12,12 @@ APP_IMG=server-hs
 
 VOLUME=${1:-/mnt/data}
 CONFIG="$(pwd)/config.yml"
-if [ -n "$CONFIG" ]; then
+if [ ! -e "$CONFIG" ]; then
   echo "ERROR: $CONFIG is not found, please ensure you have created one."
   exit 1
 fi
 
-DB_PASSWD="$(awk '/db_password/ {print "$2"}' $CONFIG)"
+DB_PASSWD="$(python -c "import yaml; print yaml.load(open('$CONFIG'))['db_password']")"
 if [ -z "DB_PASSWD" ]; then
   echo "ERROR: db_passwd is missing in $CONFIG"
   exit 1
