@@ -10,9 +10,19 @@ DB_IMG=postgres-hs
 KB_IMG=kibana-hs
 APP_IMG=server-hs
 
-RAND="$(openssl rand -base64 32)"
-DB_PASSWD="${RAND:0:10}"
 VOLUME=${1:-/mnt/data}
+CONFIG="$(pwd)/config.yml"
+if [ -n "$CONFIG" ]; then
+  echo "ERROR: $CONFIG is not found, please ensure you have created one."
+  exit 1
+fi
+
+DB_PASSWD="$(awk '/db_password/ {print "$2"}' $CONFIG)"
+if [ -z "DB_PASSWD" ]; then
+  echo "ERROR: db_passwd is missing in $CONFIG"
+  exit 1
+fi
+
 SERVER_PORT=80
 
 function container_exists(){
@@ -31,15 +41,13 @@ function create_container(){
       docker run --name $ES -v ${VOLUME}/elasticsearch:/usr/share/elasticsearch/data -d $ES_IMG
       ;;
     d)
-      touch $(pwd)/config.yml
-      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -v ${VOLUME}/postgres:/var/lib/postgresql/data -v $(pwd)/config.yml:/config.yml -d $DB_IMG
+      docker run --name $DB -e "POSTGRES_PASSWORD=$DB_PASSWD" -v ${VOLUME}/postgres:/var/lib/postgresql/data -v $CONFIG:/config.yml -d $DB_IMG
       ;;
     k)
       docker run --name $KB --link ${ES}:elasticsearch -p 5601:5601 -d $KB_IMG
       ;;
     s)
-      touch $(pwd)/config.yml
-      docker run --name $APP --link ${ES}:elasticsearch --link ${DB}:postgres -v $(pwd)/config.yml:/app/config.yml -p ${SERVER_PORT}:80 -d $APP_IMG
+      docker run --name $APP --link ${ES}:elasticsearch --link ${DB}:postgres -v $CONFIG:/app/config.yml -p ${SERVER_PORT}:80 -d $APP_IMG
       ;;
     *)
       echo "Unknow container"
