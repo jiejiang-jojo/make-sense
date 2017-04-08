@@ -17,6 +17,7 @@ if [ ! -e "$CONFIG" ]; then
   exit 1
 fi
 
+pip install --user pyyaml
 DB_PASSWD="$(python -c "import yaml; print yaml.load(open('$CONFIG'))['db_password']")"
 if [ -z "DB_PASSWD" ]; then
   echo "ERROR: db_passwd is missing in $CONFIG"
