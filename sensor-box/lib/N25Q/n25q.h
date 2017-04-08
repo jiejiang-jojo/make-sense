@@ -37,31 +37,35 @@
 #define testprintf(...) (void)0
 #endif
 
-#define READ_ID_LEN     17
-#define PAGE_SIZE 	    256
-#define SUBSECTOR_SIZE  4096
-#define FLASH_SIZE      8388608
-
-#define WRITE_STATUS_REG_CMD		0x01
-#define PAGE_PROGRAM				0x02
-#define READ_CMD 					0x03
-#define WRITE_DISABLE_CMD 			0x04
-#define READ_STATUS_REG_CMD 		0x05
-#define WRITE_ENABLE_CMD 			0x06
-#define SUBSECTOR_ERASE_CMD			0x20
-#define CLEAR_FLAG_STATUS_REG_CMD	0x50
-#define READ_FLAG_STATUS_REG_CMD	0x70
-#define BULK_ERASE_CMD				0xC7
-#define SECTOR_ERASE_CMD			0xD8
-#define WRITE_LOCK_REG_CMD  		0xE5
-#define READ_LOCK_REG_CMD   		0xE8
-#define READ_ID_CMD 				0x9F
-
 class N25Q
 {
 public:
-	N25Q();
+  N25Q(PinName mosi, PinName miso, PinName sclk, PinName ssel);
 	virtual ~N25Q();
+
+  static const int READ_ID_LEN               = 17;
+  static const int PAGE_SIZE                 = 256;
+  static const int SUBSECTOR_SIZE            = 4096;
+  static const int FLASH_SIZE                = 8388608;
+
+  static const int WRITE_STATUS_REG_CMD      = 0x01;
+  static const int PAGE_PROGRAM              = 0x02;
+  static const int READ_CMD                  = 0x03;
+  static const int WRITE_DISABLE_CMD         = 0x04;
+  static const int READ_STATUS_REG_CMD       = 0x05;
+  static const int WRITE_ENABLE_CMD          = 0x06;
+  static const int SUBSECTOR_ERASE_CMD       = 0x20;
+  static const int CLEAR_FLAG_STATUS_REG_CMD = 0x50;
+  static const int READ_FLAG_STATUS_REG_CMD  = 0x70;
+  static const int BULK_ERASE_CMD            = 0xC7;
+  static const int SECTOR_ERASE_CMD          = 0xD8;
+  static const int WRITE_LOCK_REG_CMD        = 0xE5;
+  static const int READ_LOCK_REG_CMD         = 0xE8;
+  static const int READ_ID_CMD               = 0x9F;
+
+  static const int PROGRAM_ERROR             = 0x10;
+  static const int ERASE_ERROR               = 0x08;
+
 
 	void ReadID(uint8_t * id_string, int length=READ_ID_LEN);
 	void ReadDataFromAddress(uint8_t * dataBuffer, int startingAddress, int length);
@@ -83,6 +87,8 @@ public:
 	void NonBlockingBulkErase(void);
 
 	bool isBusy(void);
+  bool hasError(int err_type);
+  bool hasError();
 	bool isSubSectorWritten(int startingAddress);
 protected:
 
@@ -93,8 +99,8 @@ private:
 	void SlaveSelect(void);
 	void SlaveDeSelect(void);
 
-	static SPI * m_SPI;
-	static DigitalOut * m_SSEL;
+	SPI * m_SPI;
+	DigitalOut * m_SSEL;
 };
 
 #endif

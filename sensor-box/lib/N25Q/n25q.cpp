@@ -19,7 +19,9 @@
 
 #include "n25q.h"
 
-N25Q::N25Q() {
+N25Q::N25Q(PinName mosi, PinName miso, PinName sclk, PinName ssel) {
+  m_SPI = new SPI(mosi, miso, sclk);
+  m_SSEL = new DigitalOut(ssel);
 	SPIInit();
 }
 
@@ -347,6 +349,18 @@ N25Q::isBusy(void) {
 	return false;
 }
 
+bool
+N25Q::hasError(int err_type) {
+  int flag = ReadFlagStatusRegister();
+  return flag & err_type;
+}
+
+bool
+N25Q::hasError() {
+  int flag = ReadFlagStatusRegister();
+  return (flag & ERASE_ERROR) || (flag & PROGRAM_ERROR);
+}
+
 int
 N25Q::SPIReadByte(void) {
 	int retval = m_SPI->write(0x00);
@@ -382,7 +396,3 @@ N25Q::SlaveDeSelect(void) {
 	m_SSEL->write(1);
 }
 
-#if defined(TARGET_ARCH_PRO)
-SPI * N25Q::m_SPI = new SPI(P0_9, P0_8, P0_7);
-DigitalOut * N25Q::m_SSEL = new DigitalOut(P0_6);
-#endif

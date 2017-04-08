@@ -161,22 +161,22 @@ void get_allData(){
         //when there are PACKET_LEN records, pack them and program into a page
         if(counter==PACKET_LEN){
             //erase subsector from flash before writing
-            if(write_pointer%SUBSECTOR_SIZE==0){
+            if(write_pointer % N25Q::SUBSECTOR_SIZE==0){
 //                flash_mutex.lock();
                 flash->SubSectorErase(write_pointer);
 //                flash_mutex.unlock();
             }
 //            flash_mutex.lock();
             //program into a page
-            flash->ProgramFromAddress(recordsW.bytes, write_pointer, PAGE_SIZE);
+            flash->ProgramFromAddress(recordsW.bytes, write_pointer, N25Q::PAGE_SIZE);
 //            flash_mutex.unlock();
-            write_pointer = write_pointer + PAGE_SIZE;
+            write_pointer = write_pointer + N25Q::PAGE_SIZE;
             queue_size++;
             counter = 0;
         }
 
         //when the flash is fully flashed start from 0 again
-        if(write_pointer==FLASH_SIZE)
+        if(write_pointer==N25Q::FLASH_SIZE)
             write_pointer = 0;
 
         Thread::wait(SAMPLE_RATE);
@@ -219,7 +219,7 @@ void send_data(const char* path){
     if(wifi.connected) {
 //        flash_mutex.lock();
         //read a page of data from the flash
-        flash->ReadDataFromAddress(recordsR.bytes,read_pointer,PAGE_SIZE);
+        flash->ReadDataFromAddress(recordsR.bytes,read_pointer,N25Q::PAGE_SIZE);
 //        flash_mutex.unlock();
 
         //format the page of data into a json object
@@ -259,10 +259,10 @@ void send_data(const char* path){
             DBG("POST successful:\n\r");
             DBG("%s\n\r", response);
             //only move the read pointer to next page when post is successful
-            read_pointer = read_pointer + PAGE_SIZE;
+            read_pointer = read_pointer + N25Q::PAGE_SIZE;
             queue_size--;
             //when the flash is fully read start from 0 again
-            if(read_pointer==FLASH_SIZE)
+            if(read_pointer==N25Q::FLASH_SIZE)
                 read_pointer = 0;
         } else {
             DBG("POST failed: ");
@@ -315,7 +315,7 @@ int main(void){
 
     pc.printf("Starting\r\n");
 
-    flash = new N25Q();
+    flash = new N25Q(P0_9, P0_8, P0_7, P0_6);
 
     led.power_on();
 
