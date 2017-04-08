@@ -89,7 +89,7 @@ PROCESSORS = {
 }
 
 def enlong_keynames(rec, mapping):
-    return {v: rec[k] for k, v in mapping.items()}
+    return {v: rec.get(k, None) for k, v in mapping.items()}
 
 
 def convert_timestamp(rec):
