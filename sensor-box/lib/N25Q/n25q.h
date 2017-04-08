@@ -89,7 +89,6 @@ public:
 	bool isBusy(void);
   bool hasError(int err_type);
   bool hasError();
-	bool isSubSectorWritten(int startingAddress);
 protected:
 
 private:

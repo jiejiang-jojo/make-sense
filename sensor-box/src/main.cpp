@@ -51,25 +51,26 @@ char iv[]  = AES_IV;
 
 //different kinds of sensor module data
 //corresponds to one page
-union sensor_data{
-    struct modules{
-//        int box_id;
-        int seconds;
-        int ctemp;
-        int humid;
-        int gesture;
-        int light;
-        int range;
-        int sound;
-        int dust;
-        int bluetooth_0;
-        int bluetooth_1;
-        int bluetooth_2;
-        int bluetooth_3;
-        int bluetooth_4;
-    }entries[PACKET_LEN];
-    uint8_t bytes[256];
-}recordsW, recordsR;
+struct entry_t {
+  int seconds;
+  int ctemp;
+  int humid;
+  int gesture;
+  int light;
+  int range;
+  int sound;
+  int dust;
+  int bluetooth_0;
+  int bluetooth_1;
+  int bluetooth_2;
+  int bluetooth_3;
+  int bluetooth_4;
+};
+union sensor_data_t {
+  entry_t entries[PACKET_LEN];
+  uint8_t bytes[256];
+};
+union sensor_data_t recordsW, recordsR;
 
 //flash write and read pointers
 int write_pointer = 0;
@@ -79,7 +80,7 @@ int read_pointer = 0;
 int queue_size = 0;
 
 //Initialize a client to read and write data from N25Q
-N25Q *flash;
+N25Q flash(P0_9, P0_8, P0_7, P0_6);
 
 //Initialize a connection to esp-link using the normal hardware serial port
 //both for SLIP and for debug messages
@@ -162,14 +163,14 @@ void get_allData(){
         if(counter==PACKET_LEN){
             //erase subsector from flash before writing
             if(write_pointer % N25Q::SUBSECTOR_SIZE==0){
-//                flash_mutex.lock();
-                flash->SubSectorErase(write_pointer);
-//                flash_mutex.unlock();
+               flash_mutex.lock();
+                flash.SubSectorErase(write_pointer);
+               flash_mutex.unlock();
             }
-//            flash_mutex.lock();
             //program into a page
-            flash->ProgramFromAddress(recordsW.bytes, write_pointer, N25Q::PAGE_SIZE);
-//            flash_mutex.unlock();
+            flash_mutex.lock();
+            flash.ProgramFromAddress(recordsW.bytes, write_pointer, N25Q::PAGE_SIZE);
+            flash_mutex.unlock();
             write_pointer = write_pointer + N25Q::PAGE_SIZE;
             queue_size++;
             counter = 0;
@@ -217,10 +218,10 @@ void send_data(const char* path){
 
     // if we're connected make an HTTP request
     if(wifi.connected) {
-//        flash_mutex.lock();
         //read a page of data from the flash
-        flash->ReadDataFromAddress(recordsR.bytes,read_pointer,N25Q::PAGE_SIZE);
-//        flash_mutex.unlock();
+        flash_mutex.lock();
+        flash.ReadDataFromAddress(recordsR.bytes,read_pointer,N25Q::PAGE_SIZE);
+        flash_mutex.unlock();
 
         //format the page of data into a json object
         char* format_single[PACKET_LEN];
@@ -314,8 +315,6 @@ void get_highFrequencyData(){
 int main(void){
 
     pc.printf("Starting\r\n");
-
-    flash = new N25Q(P0_9, P0_8, P0_7, P0_6);
 
     led.power_on();
 
