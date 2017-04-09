@@ -11,12 +11,13 @@
 #include <ELClientRest.h>
 #include <ELClientCmd.h>
 
-#include "sensors.h"
 #include "n25q.h"
 #include "aes.h"
 #include "base64.h"
 #include "led.h"
 #include "wifi.h"
+#include "glibr.h"
+#include "sensors.h"
 
 #include "util.h"
 #include "config.h"
@@ -88,9 +89,9 @@ N25Q flash(P0_9, P0_8, P0_7, P0_6);
 
 /*gesture interruption*/
 void detect_gesture() {
+    gesture_INT.disable_irq();
     gesture_flag = 1;
     gesture_counter++;
-//    gesture_INT.disable_irq();
 }
 
 int read_time(){
@@ -160,14 +161,17 @@ void push_to_flash(){
 void get_allData(){
     int counter = 0;
     while(1){
-        if(gesture_read==-1)
+        if(pravicy_active)
         {
             //stop collecting data for 1 hour
-            for(int j=0; j<600; j++){
-                Thread::wait(10); //3600000
+            for(int j=0; j<1000; j++){
+                Thread::wait(PRAVICY_PERIOD); //3600000
             }
             gesture_read = 0;
-            led.wifi_on();
+            if (wifi.connected)
+              led.wifi_on();
+            else
+              led.wifi_off();
         }
         DBG("Sound Cnt:%f Gesture Cnt:%d\n", sound_counter, gesture_counter);
         read_sensors(counter);
@@ -301,21 +305,19 @@ void send_data(const char* path){
 /*Thread for checking whether privacy mode is triggered via gesture interruption*/
 void check_gesture(){
     while(1){
-        if(gesture_read!=-1 && gesture_flag==1){
-            gesture_read = read_gesture();
-            if(gesture_read==PRIVACY_MODE||gesture_read==(PRIVACY_MODE+1)){
-                gesture_read = -1;
+      if(gesture_flag==1){
+        gesture_read = read_gesture();
+        if(!pravicy_active){
+            if(gesture_read==DIR_LEFT||gesture_read==DIR_RIGHT){
+                pravicy_active = true;
                 led.off();
             }
-            setup_gesture();
-            gesture_flag = 0;
-//            gesture_INT.enable_irq();
         }
-        if(gesture_read==-1 && gesture_flag==1){
-            setup_gesture();
-            gesture_flag = 0;
-        }
-        Thread::wait(GESTURE_SAMPLE_RATE);
+        setup_gesture();
+        gesture_flag = 0;
+        gesture_INT.enable_irq();
+      }
+      Thread::wait(GESTURE_SAMPLE_RATE);
     }
 }
 

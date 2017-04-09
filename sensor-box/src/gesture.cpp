@@ -1,6 +1,7 @@
 #include "mbed.h"
 #include "glibr.h"
 #include "sensors.h"
+#include "util.h"
 
 #define PRV_CALIBRATION            23.60
 #define PRV_SENS_UNIT              "uW/cm2"
@@ -49,8 +50,12 @@ int read_gesture()
 uint16_t read_light()
 {
     uint16_t light;
-    if(GSensor.readAmbientLight(light))
-        return light;
-    else
-        return 0;
+    if(GSensor.readAmbientLight(light)){
+      setup_gesture();
+      return light;
+    }
+    else{
+      setup_gesture();
+      return -1;
+    }
 }
