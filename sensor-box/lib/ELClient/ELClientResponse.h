@@ -1,9 +1,7 @@
 #ifndef _EL_CLIENT_RESPONSE_H_
 #define _EL_CLIENT_RESPONSE_H_
 
-#if _MSC_VER
-#define PACKED
-#else
+#ifndef PACKED
 #define PACKED __attribute__ ((__packed__))
 #endif
 

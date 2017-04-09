@@ -117,8 +117,10 @@ THE SOFTWARE.
 #define BGLIB_GAP_SCAN_POLICY_ALL                                   0
 #define BGLIB_GAP_SCAN_POLICY_WHITELIST                             1
 
+#ifndef PACKED
 #define PACKED __attribute__((packed))
 #define ALIGNED __attribute__((aligned(0x4)))
+#endif
 
 typedef uint8_t    uint8;
 typedef uint16_t   uint16;
