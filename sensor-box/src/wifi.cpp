@@ -85,6 +85,7 @@ void Wifi::setup_time() {
     DBG("wifiConnected:%d\n", connected);
     while(!connected){
       wait(1);
+      process();
       DBG("wifiConnected:%d\n", connected);
     }
 
@@ -92,6 +93,7 @@ void Wifi::setup_time() {
     int currenttime;
     while((currenttime = get_time()) < 1471651200){
       wait(1);
+      process();
       DBG("current time int: %d\n", currenttime);
     }
 

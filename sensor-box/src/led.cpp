@@ -10,7 +10,7 @@ void LED::power_on(){
 void LED::privacy_on(){
     _blueLed = 0;
     _greenLed = 0;
-    _redLed = 1;
+    _redLed = 0;
 }
 
 /*turn on the green LED to indicate that the sensor box is connected to wifi*/

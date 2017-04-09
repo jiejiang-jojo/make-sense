@@ -43,6 +43,7 @@ float sound_read_sq = 0;
 float sound_read = 0;
 float sound_counter = 0;
 float range_read = 0;
+bool pravicy_active = false;
 
 // 128bit key
 char key[] = AES_KEY;
@@ -246,57 +247,54 @@ packet_format(char * buf, char ** jsons, int n) {
 /*Sensor Data Send Thread*/
 void send_data(const char* path){
 
-    // if we're connected make an HTTP request
-    if(wifi.connected) {
-        //read a page of data from the flash
-        flash_mutex.lock();
-        flash.ReadDataFromAddress(recordsR.bytes,read_pointer,N25Q::PAGE_SIZE);
-        flash_mutex.unlock();
+    //read a page of data from the flash
+    flash_mutex.lock();
+    flash.ReadDataFromAddress(recordsR.bytes,read_pointer,N25Q::PAGE_SIZE);
+    flash_mutex.unlock();
 
-        //format the page of data into a json object
-        char* format_single[PACKET_LEN];
-        for(int i=0; i<PACKET_LEN; i++){
-          char* json_single = new char[256];
-          format_single[i] = format_data(i, json_single);
-        }
-        char* format_list = new char[RECORDSTR_LEN];
-        uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
-        char* http_body = new char[HTTP_LEN];
-        packet_format(format_list, format_single, PACKET_LEN);
-        DBG("Packet: %s\n", format_list);
+    //format the page of data into a json object
+    char* format_single[PACKET_LEN];
+    for(int i=0; i<PACKET_LEN; i++){
+      char* json_single = new char[256];
+      format_single[i] = format_data(i, json_single);
+    }
+    char* format_list = new char[RECORDSTR_LEN];
+    uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
+    char* http_body = new char[HTTP_LEN];
+    packet_format(format_list, format_single, PACKET_LEN);
+    DBG("Packet: %s\n", format_list);
 
-        //data encryption using AES with mode CBC
-        AES128_CBC_encrypt_buffer(cipher_list, (uint8_t*)format_list, RECORDSTR_LEN, (uint8_t*)key, (uint8_t*)iv);
+    //data encryption using AES with mode CBC
+    AES128_CBC_encrypt_buffer(cipher_list, (uint8_t*)format_list, RECORDSTR_LEN, (uint8_t*)key, (uint8_t*)iv);
 
-        //encode the encrypted data bytes using base64
-        base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
+    //encode the encrypted data bytes using base64
+    base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
 
-        DBG("Post len: %d\n", strlen(http_body));
-        wifi.rest.post(path, http_body);
+    DBG("Post len: %d\n", strlen(http_body));
+    wifi.rest.post(path, http_body);
 
-        //release memory
-        for(int i=0; i<PACKET_LEN; i++)
-            delete format_single[i];
-        delete[] format_list;
-        delete[] cipher_list;
-        delete[] http_body;
+    //release memory
+    for(int i=0; i<PACKET_LEN; i++)
+        delete format_single[i];
+    delete[] format_list;
+    delete[] cipher_list;
+    delete[] http_body;
 
-        //get post response from the server
-        char response[BUFLEN];
-        memset(response, 0, BUFLEN);
-        uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
-        if(code == HTTP_STATUS_OK){
-            DBG("POST successful: %s\n", response);
-            //only move the read pointer to next page when post is successful
-            read_pointer = read_pointer + N25Q::PAGE_SIZE;
-            queue_size--;
-            //when the flash is fully read start from 0 again
-            if(read_pointer==N25Q::FLASH_SIZE)
-                read_pointer = 0;
-        } else {
-            DBG("POST failed: %d\n", code);
+    //get post response from the server
+    char response[BUFLEN];
+    memset(response, 0, BUFLEN);
+    uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
+    if(code == HTTP_STATUS_OK){
+        DBG("POST successful: %s\n", response);
+        //only move the read pointer to next page when post is successful
+        read_pointer = read_pointer + N25Q::PAGE_SIZE;
+        queue_size--;
+        //when the flash is fully read start from 0 again
+        if(read_pointer==N25Q::FLASH_SIZE)
+            read_pointer = 0;
+    } else {
+        DBG("POST failed: %d\n", code);
 //            reconnect_wifi(); //when server restarted, sensor box keeps getting post failures
-        }
     }
 }
 
@@ -371,6 +369,12 @@ int main(void){
     while(1){
         //process any callbacks coming from esp_link
         wifi.process();
+        if (!pravicy_active)
+          if (wifi.connected)
+            led.wifi_on();
+          else
+            led.wifi_off();
+
         //if wifi is connected and there is data packet in the queue
         if(wifi.connected && queue_size>0)
             send_data("/box-record");

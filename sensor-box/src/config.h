@@ -15,6 +15,7 @@
 #define BLE_SERIAL_BAUD 38400
 #define BLUETOOTH_RSSI_MIN -104
 #define BLUETOOTH_ACTIVE_PERIOD 120
+#define PRAVICY_PERIOD 6   // in seconds
 
 
 #define BOX_ID 108                         //sensor box ID
