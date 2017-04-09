@@ -1,4 +1,5 @@
 #include "mbed.h"
+#include "rtos.h"
 #include "BGLib.h"
 #include "util.h"
 #include "bluetooth.h"
@@ -170,6 +171,7 @@ void bluetooth_scan_loop() {
       scan_timer.start();
       while(scan_timer.read()<10){
         ble112.checkActivity(1000);
+        Thread::wait(500);
       }
       ble112.ble_cmd_gap_end_procedure(); while (ble112.checkActivity(1000));
     }
