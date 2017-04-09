@@ -1,11 +1,12 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#define DBG_SERIAL_BAUD 38400
 #define PRIVACY_MODE 1                    //privacy mode gesture
 #define RECORDSTR_LEN 720
 #define HTTP_LEN 1024
 #define BUFLEN 266
-#define PACKET_LEN 5
+#define PACKET_LEN 4
 #define SAMPLE_RATE 3000
 #define POST_RATE 2000
 #define HIGHFREQ_SAMPLE_RATE 1

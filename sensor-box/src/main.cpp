@@ -2,12 +2,12 @@
  * This is the main class for the sensor box to collect data from different sensor modules.
  */
 
-#include <ELClient.h>
-#include <ELClientRest.h>
-#include <ELClientCmd.h>
 #include <string.h>
 #include <stdint.h>
 #include <queue>
+#include <ELClient.h>
+#include <ELClientRest.h>
+#include <ELClientCmd.h>
 
 #include "mbed.h"
 #include "rtos.h"
@@ -22,7 +22,7 @@
 #include "config.h"
 
 //Serial port to PC debugging
-Serial pc(USBTX, USBRX);
+Serial serial(USBTX, USBRX);
 
 //LED lights
 LED led(P2_5, P2_4, P2_3);
@@ -168,9 +168,9 @@ void get_allData(){
             gesture_read = 0;
             led.wifi_on();
         }
-        DBG("%f %d\n\r", sound_counter, gesture_counter);
+        DBG("Sound Cnt:%f Gesture Cnt:%d\n", sound_counter, gesture_counter);
         read_sensors(counter);
-        DBG("%d %d %d %d %d %d %d %d %d %d %d %d %d\n\r", write_pointer,
+        DBG("Reading: %d %d %d %d %d %d %d %d %d %d %d %d %d\n", write_pointer,
           recordsW.entries[counter].ctemp,
           recordsW.entries[counter].humid,
           recordsW.entries[counter].light,
@@ -199,7 +199,6 @@ void get_allData(){
 
 //format sensor records into json before sending
 char* format_data(int i, char* buf){
-        DBG("formatting data ... \r\n");
         sprintf(buf, "{\"B\": %d, \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d, \"M0\": %d, \"M1\": %d, \"M2\": %d, \"M3\": %d, \"M4\": %d}",
             BOX_ID,
             recordsR.entries[i].seconds,
@@ -216,7 +215,7 @@ char* format_data(int i, char* buf){
             recordsR.entries[i].bluetooth_3,
             recordsR.entries[i].bluetooth_4
           );
-        DBG("%s\n\r", buf);
+        DBG("Json: %s\n", buf);
         return buf;
 }
 
@@ -227,6 +226,22 @@ char* format_data(int i, char* buf){
         DBG("%.2x", str[i]);
     DBG("\n");
 }
+
+
+const char *
+packet_format(char * buf, char ** jsons, int n) {
+  buf[0] = 0;
+  strcat(buf, "[");
+  strcat(buf, jsons[0]);
+
+  for (int i=1; i<n; i++){
+    strcat(buf, ",");
+    strcat(buf, jsons[i]);
+  }
+  strcat(buf, "]");
+  return buf;
+}
+
 
 /*Sensor Data Send Thread*/
 void send_data(const char* path){
@@ -247,8 +262,8 @@ void send_data(const char* path){
         char* format_list = new char[RECORDSTR_LEN];
         uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
         char* http_body = new char[HTTP_LEN];
-        sprintf(format_list, "[%s,%s,%s,%s,%s]", format_single[0], format_single[1], format_single[2],
-                format_single[3], format_single[4]);
+        packet_format(format_list, format_single, PACKET_LEN);
+        DBG("Packet: %s\n", format_list);
 
         //data encryption using AES with mode CBC
         AES128_CBC_encrypt_buffer(cipher_list, (uint8_t*)format_list, RECORDSTR_LEN, (uint8_t*)key, (uint8_t*)iv);
@@ -256,7 +271,7 @@ void send_data(const char* path){
         //encode the encrypted data bytes using base64
         base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
 
-        DBG("posting: %d\r\n", strlen(http_body));
+        DBG("Post len: %d\n", strlen(http_body));
         wifi.rest.post(path, http_body);
 
         //release memory
@@ -269,12 +284,9 @@ void send_data(const char* path){
         //get post response from the server
         char response[BUFLEN];
         memset(response, 0, BUFLEN);
-//        flash_mutex.lock();
         uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
-//        flash_mutex.unlock();
         if(code == HTTP_STATUS_OK){
-            DBG("POST successful:\n\r");
-            DBG("%s\n\r", response);
+            DBG("POST successful: %s\n", response);
             //only move the read pointer to next page when post is successful
             read_pointer = read_pointer + N25Q::PAGE_SIZE;
             queue_size--;
@@ -282,8 +294,7 @@ void send_data(const char* path){
             if(read_pointer==N25Q::FLASH_SIZE)
                 read_pointer = 0;
         } else {
-            DBG("POST failed: ");
-            DBG("%d\n\r", code);
+            DBG("POST failed: %s\n", code);
 //            reconnect_wifi(); //when server restarted, sensor box keeps getting post failures
         }
     }
@@ -330,7 +341,8 @@ void get_highFrequencyData(){
 
 int main(void){
 
-    DBG("Starting\r\n");
+    DBG("Starting\n");
+    serial.baud(DBG_SERIAL_BAUD);
 
     led.power_on();
 
