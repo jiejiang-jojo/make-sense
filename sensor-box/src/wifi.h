@@ -6,12 +6,13 @@
 #include "ELClient.h"
 #include "ELClientRest.h"
 #include "ELClientCmd.h"
+#include "config.h"
 
 class Wifi {
 
-  Serial _serial;
-  ELClient _esp;
-  LED _led;
+  Serial m_serial;
+  ELClient m_esp;
+  LED m_led;
 
 
 public:
@@ -24,12 +25,16 @@ public:
   // Initialize CMD client (for GetTime)
   ELClientCmd cmd;
 
-  Wifi(PinName tx, PinName rx, LED led): _serial(tx, rx), _esp(&_serial, &_serial), _led(led), rest(&_esp), cmd(&_esp){}
-  void wifiCb(void *response);
-  int get_wifiStatus();
+  Wifi(PinName tx, PinName rx, LED led): m_serial(tx, rx), m_esp(&m_serial, &m_serial), m_led(led), rest(&m_esp), cmd(&m_esp){
+    m_serial.baud(ESP_LINK_SERIAL_BAUD);   // the baud rate here needs to match the esp-link config
+  }
+  void callback_handler(void *response);
+  int get_status();
   int setup();
   void setup_time();
+  time_t get_time();
   void process();
+  void reconnect();
 };
 
 #endif

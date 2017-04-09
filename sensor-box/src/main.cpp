@@ -2,6 +2,8 @@
  * This is the main class for the sensor box to collect data from different sensor modules.
  */
 
+#include <mbed.h>
+#include <rtos.h>
 #include <string.h>
 #include <stdint.h>
 #include <queue>
@@ -9,8 +11,6 @@
 #include <ELClientRest.h>
 #include <ELClientCmd.h>
 
-#include "mbed.h"
-#include "rtos.h"
 #include "sensors.h"
 #include "n25q.h"
 #include "aes.h"
@@ -294,7 +294,7 @@ void send_data(const char* path){
             if(read_pointer==N25Q::FLASH_SIZE)
                 read_pointer = 0;
         } else {
-            DBG("POST failed: %s\n", code);
+            DBG("POST failed: %d\n", code);
 //            reconnect_wifi(); //when server restarted, sensor box keeps getting post failures
         }
     }
