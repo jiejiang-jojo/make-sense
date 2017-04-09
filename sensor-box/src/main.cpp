@@ -110,9 +110,9 @@ void read_sensors(int num){
     recordsW.entries[num].humid = read_humid();
     recordsW.entries[num].light = read_light();
     //try to use integer to represent float.
-    recordsW.entries[num].dust = (int) (read_particulate()*10000);
+    recordsW.entries[num].dust = (int) read_particulate()*10000;
 
-    recordsW.entries[num].sound = (int) (cal_sound(sound_read, sound_read_sq, sound_counter)*1000);
+    recordsW.entries[num].sound = (int) cal_sound(sound_read, sound_read_sq, sound_counter)*1000;
     sound_read = 0;
     sound_read_sq = 0;
     sound_counter = 0;
@@ -131,6 +131,30 @@ void read_sensors(int num){
     gesture_counter = 0;
 }
 
+void clear_flash_subsector(){
+  flash_mutex.lock();
+  flash.SubSectorErase(write_pointer);
+  flash_mutex.unlock();
+}
+
+void write_rec_packet(){
+  //program into a page
+  flash_mutex.lock();
+  flash.ProgramFromAddress(recordsW.bytes, write_pointer, N25Q::PAGE_SIZE);
+  flash_mutex.unlock();
+}
+
+void push_to_flash(){
+  //erase subsector from flash before writing
+  if(write_pointer % N25Q::SUBSECTOR_SIZE==0){
+    clear_flash_subsector();
+  }
+  write_rec_packet();
+  //when the flash is fully flashed start from 0 again
+  write_pointer = (write_pointer + N25Q::PAGE_SIZE) % N25Q::FLASH_SIZE;
+  queue_size++;
+}
+
 /*Sensor Data Get Thread*/
 void get_allData(){
     int counter = 0;
@@ -146,7 +170,7 @@ void get_allData(){
         }
         DBG("%f %d\n\r", sound_counter, gesture_counter);
         read_sensors(counter);
-        DBG("%d %d %d %d %d %d %d %d %d %d\n\r", write_pointer,
+        DBG("%d %d %d %d %d %d %d %d %d %d %d %d %d\n\r", write_pointer,
           recordsW.entries[counter].ctemp,
           recordsW.entries[counter].humid,
           recordsW.entries[counter].light,
@@ -155,40 +179,28 @@ void get_allData(){
           recordsW.entries[counter].dust,
           recordsW.entries[counter].sound,
           recordsW.entries[counter].bluetooth_0,
-          recordsW.entries[counter].bluetooth_1
+          recordsW.entries[counter].bluetooth_1,
+          recordsW.entries[counter].bluetooth_2,
+          recordsW.entries[counter].bluetooth_3,
+          recordsW.entries[counter].bluetooth_4
         );
         counter++;
 
         //when there are PACKET_LEN records, pack them and program into a page
         if(counter==PACKET_LEN){
-            //erase subsector from flash before writing
-            if(write_pointer % N25Q::SUBSECTOR_SIZE==0){
-               flash_mutex.lock();
-                flash.SubSectorErase(write_pointer);
-               flash_mutex.unlock();
-            }
-            //program into a page
-            flash_mutex.lock();
-            flash.ProgramFromAddress(recordsW.bytes, write_pointer, N25Q::PAGE_SIZE);
-            flash_mutex.unlock();
-            write_pointer = write_pointer + N25Q::PAGE_SIZE;
-            queue_size++;
-            counter = 0;
+          push_to_flash();
+          counter = 0;
         }
 
-        //when the flash is fully flashed start from 0 again
-        if(write_pointer==N25Q::FLASH_SIZE)
-            write_pointer = 0;
 
         Thread::wait(SAMPLE_RATE);
     }
 }
 
 //format sensor records into json before sending
-char* format_data(int i){
-        printf("formatting data ... \r\n");
-        char* json_single = new char[256];
-        sprintf(json_single, "{\"B\": %d, \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d, \"M0\": %d, \"M1\": %d}",
+char* format_data(int i, char* buf){
+        DBG("formatting data ... \r\n");
+        sprintf(buf, "{\"B\": %d, \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d, \"M0\": %d, \"M1\": %d, \"M2\": %d, \"M3\": %d, \"M4\": %d}",
             BOX_ID,
             recordsR.entries[i].seconds,
             recordsR.entries[i].ctemp,
@@ -199,18 +211,21 @@ char* format_data(int i){
             recordsR.entries[i].sound/1000.0,
             recordsR.entries[i].range,
             recordsR.entries[i].bluetooth_0,
-            recordsR.entries[i].bluetooth_1
+            recordsR.entries[i].bluetooth_1,
+            recordsR.entries[i].bluetooth_2,
+            recordsR.entries[i].bluetooth_3,
+            recordsR.entries[i].bluetooth_4
           );
-        DBG("%s\n\r", json_single);
-        return json_single;
+        DBG("%s\n\r", buf);
+        return buf;
 }
 
  void phex(uint8_t* str)
 {
     unsigned char i;
     for(i = 0; i < 16; ++i)
-        printf("%.2x", str[i]);
-    printf("\n");
+        DBG("%.2x", str[i]);
+    DBG("\n");
 }
 
 /*Sensor Data Send Thread*/
@@ -226,7 +241,8 @@ void send_data(const char* path){
         //format the page of data into a json object
         char* format_single[PACKET_LEN];
         for(int i=0; i<PACKET_LEN; i++){
-            format_single[i] = format_data(i);
+          char* json_single = new char[256];
+          format_single[i] = format_data(i, json_single);
         }
         char* format_list = new char[RECORDSTR_LEN];
         uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
@@ -300,11 +316,11 @@ void get_highFrequencyData(){
     float temp_range;
     while(1){
         if(gesture_read != -1){
+            temp_range = read_range();
             temp_sound = read_sound();
             sound_counter++;
             sound_read += temp_sound;
             sound_read_sq += temp_sound*temp_sound;
-            temp_range = read_range();
             if(range_read>temp_range)
                 range_read = temp_range;
         }
@@ -314,7 +330,7 @@ void get_highFrequencyData(){
 
 int main(void){
 
-    pc.printf("Starting\r\n");
+    DBG("Starting\r\n");
 
     led.power_on();
 

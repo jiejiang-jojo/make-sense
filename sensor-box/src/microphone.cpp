@@ -2,7 +2,7 @@
 #include "rtos.h"
 #include "sensors.h"
 #include <stdlib.h>
-#include <cmath>  
+#include <cmath>
 
 //microphone sensor
 AnalogIn mic(P0_23);
