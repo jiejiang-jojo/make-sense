@@ -110,6 +110,7 @@ def start_send_http_request(method, url, data, timeout):
     :returns: None
 
     """
+    print 'Sending to {0}'.format(url)
     proc = Process(target=send_http_request, args=(method, url, data, timeout))
     proc.start()
 

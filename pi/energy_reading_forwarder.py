@@ -2,6 +2,9 @@
 """ Reading data from the energy sensor, store them and send them to server.
 """
 
+import os
+import sys
+import traceback
 import time
 import json
 import logging
@@ -10,6 +13,7 @@ from logging_config import get_logging_config
 from xml.etree.ElementTree import fromstring
 from xmljson import badgerfish as bf
 from serial import Serial
+from serial.serialutil import SerialException
 from logging_handlers import encode
 import yaml
 
@@ -17,21 +21,41 @@ import yaml
 CONFIG = './config.yml'
 
 
+def get_or_default(obj, name, typ=str, default=None):
+    """ get the value from the dict with proper type"""
+    elem = obj.get(name, None)
+    if elem is not None:
+        val = elem.get('$', default)
+        if val is not None:
+            return typ(val)
+    return default
+
+
 def parse_record(line, appendix):
+    """ parse the record from XML"""
     xml = bf.data(fromstring(line))
     msg = xml['msg']
     record = {
-        'src': msg['src']['$'],
-        'dsb': int(msg['dsb']['$']),
+        'src': get_or_default(msg, 'src'),
+        'dsb': get_or_default(msg, 'dsb', int),
         'timestamp': int(time.time()),
-        'tmpr': float(msg['tmpr']['$']),
-        'sensor': int(msg['sensor']['$']),
-        'id': msg['id']['$'],
-        'type': int(msg['type']['$']),
-        'watts': int(msg['ch1']['watts']['$'])
+        'tmpr': get_or_default(msg, 'tmpr', float),
+        'sensor': get_or_default(msg, 'sensor', int),
+        'id': get_or_default(msg, 'id'),
+        'type': get_or_default(msg, 'type', int),
+        'watts': get_or_default(msg, 'ch1', int)
     }
     record.update(appendix)
     return record
+
+
+def find_usb_tty(prefix='/dev/ttyUSB{0}'):
+    """ Find the usb.
+    """
+    for i in range(10):
+        dev = prefix.format(i)
+        if os.path.exists(dev):
+            return dev
 
 
 def main():
@@ -42,13 +66,19 @@ def main():
         logging.config.dictConfig(get_logging_config(config))
         household = config['household']
     logger = logging.getLogger('SensorReading')
-    with Serial('/dev/ttyUSB0', 57600, bytesize=8, parity='N', stopbits=1) as serial_port:
-        for line in serial_port:
-            try:
-                rec = parse_record(line, {'household': household})
-                logger.info(json.dumps(rec))
-            except Exception as err:  # pylint: disable-msg=broad-except
-                print err
+    dev = find_usb_tty()
+    while True:
+        try:
+            print 'Hooking up to {0}'.format(dev)
+            with Serial(dev, 57600, bytesize=8, parity='N', stopbits=1) as serial_port:
+                for line in serial_port:
+                    try:
+                        rec = parse_record(line, {'household': household})
+                        logger.info(json.dumps(rec))
+                    except Exception:  # pylint: disable-msg=broad-except
+                        traceback.print_exc(file=sys.stdout)
+        except SerialException:
+            traceback.print_exc(file=sys.stdout)
 
 
 def throttled_mock_record():
