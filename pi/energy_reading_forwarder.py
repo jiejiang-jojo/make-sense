@@ -21,13 +21,15 @@ import yaml
 CONFIG = './config.yml'
 
 
-def get_or_default(obj, name, typ=str, default=None):
+def get_or_default(obj, path, typ=str, default=None):
     """ get the value from the dict with proper type"""
-    elem = obj.get(name, None)
+    path.reverse()
+    elem = obj
+    while elem is not None and len(path) > 0:
+        p = path.pop()
+        elem = elem.get(p, None)
     if elem is not None:
-        val = elem.get('$', default)
-        if val is not None:
-            return typ(val)
+        return typ(elem)
     return default
 
 
@@ -36,14 +38,14 @@ def parse_record(line, appendix):
     xml = bf.data(fromstring(line))
     msg = xml['msg']
     record = {
-        'src': get_or_default(msg, 'src'),
-        'dsb': get_or_default(msg, 'dsb', int),
+        'src': get_or_default(msg, ['src', '$']),
+        'dsb': get_or_default(msg, ['dsb', '$'], int),
         'timestamp': int(time.time()),
-        'tmpr': get_or_default(msg, 'tmpr', float),
-        'sensor': get_or_default(msg, 'sensor', int),
-        'id': get_or_default(msg, 'id'),
-        'type': get_or_default(msg, 'type', int),
-        'watts': get_or_default(msg, 'ch1', int)
+        'tmpr': get_or_default(msg, ['tmpr', '$'], float),
+        'sensor': get_or_default(msg, ['sensor', '$'], int),
+        'id': get_or_default(msg, ['id', '$']),
+        'type': get_or_default(msg, ['type', '$'], int),
+        'watts': get_or_default(msg, ['ch1', 'watts', '$'], int)
     }
     record.update(appendix)
     return record
