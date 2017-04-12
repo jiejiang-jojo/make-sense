@@ -239,7 +239,7 @@ char* format_data(int i, char* buf){
 
 
 const char *
-packet_format(char * buf, char ** jsons, int n) {
+packet_format(char * buf, char jsons[PACKET_LEN][256], int n) {
   buf[0] = 0;
   strcat(buf, "[");
   strcat(buf, jsons[0]);
@@ -252,6 +252,7 @@ packet_format(char * buf, char ** jsons, int n) {
   return buf;
 }
 
+char format_single[PACKET_LEN][256];
 
 /*Sensor Data Send Thread*/
 void send_data(const char* path){
@@ -262,14 +263,12 @@ void send_data(const char* path){
     flash_mutex.unlock();
 
     //format the page of data into a json object
-    char* format_single[PACKET_LEN];
     for(int i=0; i<PACKET_LEN; i++){
-      char* json_single = new char[256];
-      format_single[i] = format_data(i, json_single);
+      format_data(i, format_single[i]);
     }
-    char* format_list = new char[RECORDSTR_LEN];
-    uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
-    char* http_body = new char[HTTP_LEN];
+    char format_list[RECORDSTR_LEN];
+    uint8_t cipher_list[RECORDSTR_LEN];
+    char http_body[HTTP_LEN];
     packet_format(format_list, format_single, PACKET_LEN);
     // DBG("Packet: %s\n", format_list);
 
@@ -282,12 +281,6 @@ void send_data(const char* path){
     // DBG("Post len: %d\n", strlen(http_body));
     wifi.rest.post(path, http_body);
 
-    //release memory
-    for(int i=0; i<PACKET_LEN; i++)
-        delete format_single[i];
-    delete[] format_list;
-    delete[] cipher_list;
-    delete[] http_body;
 
     //get post response from the server
     char response[BUFLEN];
