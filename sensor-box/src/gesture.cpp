@@ -27,7 +27,7 @@ bool gesture_available(){
 int read_gesture()
 {
     int gesture = GSensor.readGesture();
-    DBG("guesture ------ %d", gesture);
+    // DBG("guesture ------ %d\n", gesture);
     GSensor.disableGestureSensor();
     return gesture;
 }

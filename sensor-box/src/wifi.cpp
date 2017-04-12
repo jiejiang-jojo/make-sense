@@ -1,4 +1,5 @@
 #include "wifi.h"
+#include "rtos.h"
 #include "led.h"
 #include "util.h"
 #include "config.h"
@@ -66,7 +67,7 @@ void Wifi::reconnect(){
        setup();
        m_esp.Process();
        DBG("wifiConnected:%d\n", connected);
-       wait(1);
+       Thread::wait(1);
    }while(!connected || get_status()!=2);
    connected = true;
    m_led.wifi_on();
@@ -84,7 +85,7 @@ void Wifi::setup_time() {
 
     DBG("wifiConnected:%d\n", connected);
     while(!connected){
-      wait(1);
+      Thread::wait(1);
       process();
       DBG("wifiConnected:%d\n", connected);
     }
@@ -92,7 +93,7 @@ void Wifi::setup_time() {
     //re-get time in case that the timestamp is not valid (e.g., 1970-1-1)
     int currenttime;
     while((currenttime = get_time()) < 1471651200){
-      wait(1);
+      Thread::wait(1);
       process();
       DBG("current time int: %d\n", currenttime);
     }

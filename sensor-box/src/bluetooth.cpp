@@ -57,64 +57,64 @@ void my_evt_gap_scan_response(const ble_msg_gap_scan_response_evt_t *msg) {
         bt_reading.lastseen[i] = time(NULL);
       }
     }
-    DBG("###\tgap_scan_response: { ");
-    DBG("rssi: "); DBG("%d",msg -> rssi);
-    DBG(", packet_type: "); DBG("%X",(uint8_t)msg -> packet_type);
-    DBG(", sender: ");
-    // this is a "bd_addr" data type, which is a 6-byte uint8_t array
-    for (uint8_t i = 0; i < 6; i++) {
-        // if (msg -> sender.addr[i] < 16) putc('0');
-        DBG("%02X",msg -> sender.addr[i]);
-    }
-    DBG(", address_type: "); DBG("%X",msg -> address_type);
-    DBG(", bond: "); DBG("%X",msg -> bond);
+    // DBG("###\tgap_scan_response: { ");
+    // DBG("rssi: "); DBG("%d",msg -> rssi);
+    // DBG(", packet_type: "); DBG("%X",(uint8_t)msg -> packet_type);
+    // DBG(", sender: ");
+    // // this is a "bd_addr" data type, which is a 6-byte uint8_t array
+    // for (uint8_t i = 0; i < 6; i++) {
+    //     // if (msg -> sender.addr[i] < 16) putc('0');
+    //     DBG("%02X",msg -> sender.addr[i]);
+    // }
+    // DBG(", address_type: "); DBG("%X",msg -> address_type);
+    // DBG(", bond: "); DBG("%X",msg -> bond);
     // DBG(", data: ");
     // // this is a "uint8array" data type, which is a length byte and a uint8_t* pointer
     // for (uint8_t i = 0; i < msg -> data.len; i++) {
     //     if (msg -> data.data[i] < 16) putc('0');
     //     DBG("%X",msg -> data.data[i]);
     // }
-    DBG(" }\r\n");
+    // DBG(" }\r\n");
 }
 
 void my_rsp_gap_set_scan_parameters(const ble_msg_gap_set_scan_parameters_rsp_t *msg) {
-    DBG("<--\tgap_set_scan_parameters: { ");
-    DBG("result: "); DBG("%X",(uint16_t)msg -> result);
-    DBG(" }\r\n");
+    // DBG("<--\tgap_set_scan_parameters: { ");
+    // DBG("result: "); DBG("%X",(uint16_t)msg -> result);
+    // DBG(" }\r\n");
 }
 
 void my_rsp_gap_discover(const ble_msg_gap_discover_rsp_t *msg) {
-    DBG("<--\tgap_discover: { ");
-    DBG("result: "); DBG("%X",(uint16_t)msg -> result);
-    DBG(" }\r\n");
+    // DBG("<--\tgap_discover: { ");
+    // DBG("result: "); DBG("%X",(uint16_t)msg -> result);
+    // DBG(" }\r\n");
 }
 
 void my_rsp_gap_set_filtering(const ble_msg_gap_set_filtering_rsp_t *msg) {
-    DBG("<--\tgap_filtering: { ");
-    DBG("result: "); DBG("%X",(uint16_t)msg -> result);
-    DBG(" }\r\n");
+    // DBG("<--\tgap_filtering: { ");
+    // DBG("result: "); DBG("%X",(uint16_t)msg -> result);
+    // DBG(" }\r\n");
 }
 
 void my_rsp_system_whitelist_append(const ble_msg_system_whitelist_append_rsp_t *msg) {
-    DBG("<--\tgap_white list append: { ");
-    DBG("result: "); DBG("%X",(uint16_t)msg -> result);
-    DBG(" }\r\n");
+    // DBG("<--\tgap_white list append: { ");
+    // DBG("result: "); DBG("%X",(uint16_t)msg -> result);
+    // DBG(" }\r\n");
 }
 
 void my_rsp_system_whitelist_clear(const ble_msg_system_whitelist_clear_rsp_t *msg) {
-    DBG("<--\tgap_white list clear: { ");
-    DBG("result: "); DBG("%X",(uint16_t)msg -> result);
-    DBG(" }\r\n");
+    // DBG("<--\tgap_white list clear: { ");
+    // DBG("result: "); DBG("%X",(uint16_t)msg -> result);
+    // DBG(" }\r\n");
 }
 
 void my_rsp_gap_end_procedure(const ble_msg_gap_end_procedure_rsp_t *msg) {
-    DBG("<--\tgap_end_procedure: { ");
-    DBG("result: "); DBG("%X",(uint16_t)msg -> result);
-    DBG(" }\r\n");
+    // DBG("<--\tgap_end_procedure: { ");
+    // DBG("result: "); DBG("%X",(uint16_t)msg -> result);
+    // DBG(" }\r\n");
 }
 
 void my_rsp_system_hello(const ble_msg_system_hello_rsp_t *msg) {
-    DBG("<--\tsystem_hello\r\n");
+    // DBG("<--\tsystem_hello\r\n");
 }
 
 void bleinit(){
@@ -137,13 +137,13 @@ void bleinit(){
 
     #ifdef _BLE_RESET_
     RES_PIN=0;
-    wait(0.05);
+    Thread::wait(0.05);
     RES_PIN=1;
     #endif
 }
 
 void bluetooth_scan_loop() {
-    DBG("start...\n\r");
+    DBG("BLE scan loop starting...\n");
     bleinit();
 
     // clear whitelist
@@ -165,7 +165,7 @@ void bluetooth_scan_loop() {
     Timer scan_timer;
     while(1){
       time_t seconds = time(NULL);
-      DBG("scanning... %ld\n\r", seconds);
+      // DBG("scanning... %ld\n\r", seconds);
       ble112.ble_cmd_gap_discover(BGLIB_GAP_DISCOVER_GENERIC); while (ble112.checkActivity(1000));
       scan_timer.reset();
       scan_timer.start();
@@ -175,5 +175,5 @@ void bluetooth_scan_loop() {
       }
       ble112.ble_cmd_gap_end_procedure(); while (ble112.checkActivity(1000));
     }
-    DBG("END");
+    DBG("Unexpected BLE loop termination");
 }
