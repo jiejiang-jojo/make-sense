@@ -1,6 +1,7 @@
 // Copyright (c) 2016 by B. Runnels and T. von Eicken
 
 #include "ELClientRest.h"
+#include "rtos.h"
 #include "Timer.h"
 
 typedef enum {
@@ -118,6 +119,7 @@ uint16_t ELClientRest::waitResponse(char* data, uint16_t maxLen, uint32_t timeou
 //  while (_status == 0 && (millis() - wait < timeout)) {
   while (_status == 0 && (timer.read_ms() < timeout)) {
     _elc->Process();
+    Thread::wait(0.01);
   }
   timer.stop();
   return getResponse(data, maxLen);

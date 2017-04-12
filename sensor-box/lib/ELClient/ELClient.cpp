@@ -2,6 +2,7 @@
 
 #include "ELClient.h"
 #include "mbed.h"
+#include "rtos.h"
 #include "Timer.h"
 
 #define SLIP_END  0300        // indicates end of packet
@@ -209,15 +210,14 @@ ELClientPacket *ELClient::WaitReturn(uint32_t timeout) {
 //  uint32_t wait = millis();
   Timer timer;
   timer.start();
-//  printf("getting value 111 !!!\n\r");
 //  while (millis() - wait < timeout) {
   while (timer.read_ms() < timeout) {
     ELClientPacket *packet = Process();
     if (packet != NULL) {
         timer.stop();
-//        printf("getting value 222!!!\n\r");
         return packet;
     }
+    Thread::wait(0.01);
   }
   timer.stop();
   return NULL;
