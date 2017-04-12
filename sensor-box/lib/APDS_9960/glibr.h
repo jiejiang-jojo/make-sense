@@ -19,7 +19,7 @@
 #define APDS9960_ID_2           0x9C 
 
 /* Misc parameters */
-#define FIFO_PAUSE_TIME         0.30      // Wait period (ms) between FIFO reads
+#define FIFO_PAUSE_TIME         300      // Wait period (us) between FIFO reads
 
 /* APDS-9960 register addresses */
 #define APDS9960_ENABLE         0x80

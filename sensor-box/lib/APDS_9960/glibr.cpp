@@ -450,7 +450,7 @@ int glibr::readGesture()
     while(tmr.read_ms()<50) {
       
         /* Wait some time to collect next batch of FIFO data */
-//        wait(FIFO_PAUSE_TIME);
+       wait_us(FIFO_PAUSE_TIME);
         
         /* Get the contents of the STATUS register. Is data still valid? */
           

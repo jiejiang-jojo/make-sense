@@ -45,6 +45,7 @@ float sound_read = 0;
 float sound_counter = 0;
 float range_read = 0;
 bool pravicy_active = false;
+int light_read = 0;
 
 // 128bit key
 char key[] = AES_KEY;
@@ -89,7 +90,6 @@ N25Q flash(P0_9, P0_8, P0_7, P0_6);
 
 /*gesture interruption*/
 void detect_gesture() {
-    gesture_INT.disable_irq();
     gesture_flag = 1;
     gesture_counter++;
 }
@@ -110,7 +110,14 @@ void read_sensors(int num){
     recordsW.entries[num].seconds = read_time();
     recordsW.entries[num].ctemp = read_ctemp();
     recordsW.entries[num].humid = read_humid();
-    recordsW.entries[num].light = read_light();
+
+    int try_light_read = read_light();
+    if (try_light_read > 0)
+      recordsW.entries[num].light = try_light_read;
+    else
+      recordsW.entries[num].light = light_read;
+    light_read = -1;
+
     //try to use integer to represent float.
     recordsW.entries[num].dust = (int) read_particulate()*10000;
 
@@ -163,11 +170,9 @@ void get_allData(){
     while(1){
         if(pravicy_active)
         {
-            //stop collecting data for 1 hour
-            for(int j=0; j<1000; j++){
-                Thread::wait(PRAVICY_PERIOD); //3600000
-            }
-            gesture_read = 0;
+            // stop collecting data for some period
+            wait(PRAVICY_PERIOD);
+            pravicy_active = false;
             if (wifi.connected)
               led.wifi_on();
             else
@@ -220,7 +225,7 @@ char* format_data(int i, char* buf){
             recordsR.entries[i].bluetooth_3,
             recordsR.entries[i].bluetooth_4
           );
-        DBG("Json: %s\n", buf);
+        // DBG("Json: %s\n", buf);
         return buf;
 }
 
@@ -266,7 +271,7 @@ void send_data(const char* path){
     uint8_t* cipher_list = new uint8_t[RECORDSTR_LEN];
     char* http_body = new char[HTTP_LEN];
     packet_format(format_list, format_single, PACKET_LEN);
-    DBG("Packet: %s\n", format_list);
+    // DBG("Packet: %s\n", format_list);
 
     //data encryption using AES with mode CBC
     AES128_CBC_encrypt_buffer(cipher_list, (uint8_t*)format_list, RECORDSTR_LEN, (uint8_t*)key, (uint8_t*)iv);
@@ -274,7 +279,7 @@ void send_data(const char* path){
     //encode the encrypted data bytes using base64
     base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
 
-    DBG("Post len: %d\n", strlen(http_body));
+    // DBG("Post len: %d\n", strlen(http_body));
     wifi.rest.post(path, http_body);
 
     //release memory
@@ -305,19 +310,20 @@ void send_data(const char* path){
 /*Thread for checking whether privacy mode is triggered via gesture interruption*/
 void check_gesture(){
     while(1){
-      if(gesture_flag==1){
+      if(gesture_flag==1 && gesture_available() ){
+        gesture_INT.disable_irq();
         gesture_read = read_gesture();
+        light_read = read_light();
         if(!pravicy_active){
-            if(gesture_read==DIR_LEFT||gesture_read==DIR_RIGHT){
+            if(gesture_read==DIR_UP||gesture_read==DIR_DOWN){
                 pravicy_active = true;
                 led.off();
             }
         }
-        setup_gesture();
         gesture_flag = 0;
         gesture_INT.enable_irq();
-      }
-      Thread::wait(GESTURE_SAMPLE_RATE);
+      } else
+        Thread::wait(GESTURE_SAMPLE_RATE);
     }
 }
 
@@ -326,7 +332,7 @@ void get_highFrequencyData(){
     float temp_sound;
     float temp_range;
     while(1){
-        if(gesture_read != -1){
+        if(!pravicy_active){
             temp_range = read_range();
             temp_sound = read_sound();
             sound_counter++;

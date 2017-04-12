@@ -6,6 +6,8 @@
 
 void setup_gesture();
 
+bool gesture_available();
+
 void setup_range();
 
 int read_ctemp();
@@ -14,7 +16,7 @@ int read_humid();
 
 int read_gesture();
 
-uint16_t read_light();
+int read_light();
 
 float read_particulate();
 
