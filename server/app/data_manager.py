@@ -18,6 +18,7 @@ class SensorboxReading(Base):  # pylint: disable-msg=no-init,too-few-public-meth
     id = Column(Integer, primary_key=True)
     timestamp = Column('timestamp', DateTime)
     sensorbox_id = Column('sensorbox_id', Integer)
+    internal_id = Column('internal_id', Text)
     temperature = Column('temperature', Float)
     humidity = Column('humidity', Float)
     gesture = Column('gesture', Integer)
@@ -36,6 +37,7 @@ class EnergyReading(Base):  # pylint: disable-msg=no-init,too-few-public-methods
     """ Table containing readings from Current Cost energy sensors"""
     __tablename__ = "energy_reading"
     id = Column(Integer, primary_key=True)
+    internal_id = Column('internal_id', Text)
     timestamp = Column('timestamp', DateTime)
     source = Column('source', Text)
     days_since_run = Column('days_since_run', Integer)
@@ -60,6 +62,7 @@ MAPPINGS = {
         'tmpr': 'e_temperature',
         'sensor': 'energy_sensor',
         'household': 'household',
+        'internal_id': 'internal_id',
         'id': 'e_radio_id',
         'type': 'energy_type',
         'watts': 'watts'
@@ -67,6 +70,7 @@ MAPPINGS = {
 
     'box': {
         "B": "sensorbox_id",
+        "P": "internal_id",
         "T": "timestamp",
         "P": "temperature",
         "H": "humidity",

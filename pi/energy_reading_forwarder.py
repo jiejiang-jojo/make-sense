@@ -20,6 +20,9 @@ import yaml
 
 CONFIG = './config.yml'
 
+with open('/sys/class/net/eth0/address') as fin:
+    DEVICE_ID = fin.read().strip()
+
 
 def get_or_default(obj, path, typ=str, default=None):
     """ get the value from the dict with proper type"""
@@ -41,6 +44,7 @@ def parse_record(line, appendix):
         'src': get_or_default(msg, ['src', '$']),
         'dsb': get_or_default(msg, ['dsb', '$'], int),
         'timestamp': int(time.time()),
+        'internal_id': DEVICE_ID,
         'tmpr': get_or_default(msg, ['tmpr', '$'], float),
         'sensor': get_or_default(msg, ['sensor', '$'], int),
         'id': get_or_default(msg, ['id', '$']),
