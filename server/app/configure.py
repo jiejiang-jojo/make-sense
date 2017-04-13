@@ -125,6 +125,9 @@ def console(filename, action):
         with open(filename) as fin:
             config = yaml.load(fin)
         init_db(config)
+    else:
+        print 'Error: action {0} is not recognized!'.format(action)
+        sys.exit(-1)
 
 
 if __name__ == "__main__":

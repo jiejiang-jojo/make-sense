@@ -2,6 +2,8 @@
 
 set -e
 
-python configure.py init_db
+echo "Try to init db..."
+python configure.py initdb
 
+echo "Starting uwsgi..."
 exec uwsgi --ini /app/uwsgi.ini
