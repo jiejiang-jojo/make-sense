@@ -42,7 +42,7 @@ int gesture_flag = 0;
 int gesture_counter = 0;
 float sound_read_sq = 0;
 float sound_read = 0;
-float sound_counter = 0;
+int sound_counter = 0;
 float range_read = 0;
 bool pravicy_active = false;
 int light_read = 0;
@@ -119,9 +119,9 @@ void read_sensors(int num){
     light_read = -1;
 
     //try to use integer to represent float.
-    recordsW.entries[num].dust = (int) read_particulate()*10000;
+    recordsW.entries[num].dust = (int) (read_particulate()*10000);
 
-    recordsW.entries[num].sound = (int) cal_sound(sound_read, sound_read_sq, sound_counter)*1000;
+    recordsW.entries[num].sound = (int) (cal_sound(sound_read, sound_read_sq, sound_counter)*1000);
     sound_read = 0;
     sound_read_sq = 0;
     sound_counter = 0;
@@ -178,13 +178,14 @@ void get_allData(){
             else
               led.wifi_off();
         }
-        DBG("Sound Cnt:%f Gesture Cnt:%d\n", sound_counter, gesture_counter);
+        DBG("SndCnt:%d GstCnt:%d\n", sound_counter, gesture_counter);
         read_sensors(counter);
-        DBG("Reading: %d %d %d %d %d %d %d %d %d %d %d %d %d\n", write_pointer,
+        DBG("Reading(%10d)[%d]: %4dT %4dH %4dL %4dR %4dD %4dS %4d %4d %4d %4d %4d\n",
+          write_pointer,
+          recordsW.entries[counter].seconds,
           recordsW.entries[counter].ctemp,
           recordsW.entries[counter].humid,
           recordsW.entries[counter].light,
-          recordsW.entries[counter].seconds,
           recordsW.entries[counter].range,
           recordsW.entries[counter].dust,
           recordsW.entries[counter].sound,
