@@ -217,7 +217,7 @@ ELClientPacket *ELClient::WaitReturn(uint32_t timeout) {
         timer.stop();
         return packet;
     }
-    Thread::wait(0.01);
+    Thread::wait(1);
   }
   timer.stop();
   return NULL;
