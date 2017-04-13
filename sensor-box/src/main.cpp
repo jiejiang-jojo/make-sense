@@ -10,6 +10,7 @@
 #include <ELClient.h>
 #include <ELClientRest.h>
 #include <ELClientCmd.h>
+#include "IAP.h"
 
 #include "n25q.h"
 #include "aes.h"
@@ -24,6 +25,7 @@
 
 //Serial port to PC debugging
 Serial serial(USBTX, USBRX);
+char device_id_str[20] = {0};
 
 //LED lights
 LED led(P2_5, P2_4, P2_3);
@@ -210,8 +212,9 @@ void get_allData(){
 
 //format sensor records into json before sending
 char* format_data(int i, char* buf){
-        sprintf(buf, "{\"B\": %d, \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d, \"M0\": %d, \"M1\": %d, \"M2\": %d, \"M3\": %d, \"M4\": %d}",
+        sprintf(buf, "{\"B\": %d, \"P\": \"%s\", \"T\": %d, \"P\": %d, \"H\": %d, \"G\": %d, \"L\": %d, \"D\": %.4f, \"S\": %.3f, \"R\": %d, \"M0\": %d, \"M1\": %d, \"M2\": %d, \"M3\": %d, \"M4\": %d}",
             BOX_ID,
+            device_id_str,
             recordsR.entries[i].seconds,
             recordsR.entries[i].ctemp,
             recordsR.entries[i].humid,
@@ -339,10 +342,21 @@ void get_highFrequencyData(){
     }
 }
 
+void get_serial_number(){
+    IAP iap;
+    int *block = iap.read_serial();
+    uint32_t device_id[2] = {0};
+    device_id[0] = *block;
+    device_id[1] = *(block + 1);
+    sprintf(device_id_str, "%02X%02X", device_id[0], device_id[1]);
+    DBG("%02X%02X]...\n", device_id[0], device_id[1]);
+}
+
 int main(void){
 
-    DBG("Starting\n");
     serial.baud(DBG_SERIAL_BAUD);
+    DBG("Starting [");
+    get_serial_number();
 
     led.power_on();
 
