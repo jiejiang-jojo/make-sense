@@ -28,7 +28,7 @@ SERVER_PORT=80
 
 function container_exists(){
   container=$1
-  docker container ls -a --format '{{ .Names }}' | grep $container > /dev/null
+  docker container ls -a --format '{{ .Names }}' | grep -E "^$container\$" > /dev/null
 }
 
 function container_ip(){
