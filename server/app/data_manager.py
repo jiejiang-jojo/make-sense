@@ -70,7 +70,7 @@ MAPPINGS = {
 
     'box': {
         "B": "sensorbox_id",
-        "P": "internal_id",
+        "Q": "internal_id",
         "T": "timestamp",
         "P": "temperature",
         "H": "humidity",
