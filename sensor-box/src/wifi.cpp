@@ -15,10 +15,10 @@ void Wifi::callback_handler(void *response) {
 
     if(status == STATION_GOT_IP) {
       DBG("WIFI CONNECTED\n");
-      connected = true;
+      isConnected = true;
     } else {
       DBG("WIFI NOT READY: %d\n", status);
-      connected = false;
+      isConnected = false;
     }
   }
 }
@@ -33,7 +33,7 @@ int Wifi::get_status(){
 }
 
 /*set up wifi connection to data server*/
-int Wifi::setup() {
+void Wifi::setup() {
     DBG("EL-Client starting!\n");
 
     // Sync-up with esp-link, this is required at the start of any sketch and initializes the
@@ -55,7 +55,6 @@ int Wifi::setup() {
         DBG("REST begin failed: %d\n", err);
     }
     DBG("EL-REST ready\n");
-    return 1;
 }
 
 /*when there is no connection to the data server, try to reconnect*/
@@ -65,35 +64,30 @@ void Wifi::reconnect(){
    //enum {wifiIsDisconnected, wifiIsConnected, wifiGotIP}
    do{
        setup();
-       m_esp.Process();
-       DBG("wifiConnected:%d\n", connected);
-       Thread::wait(1);
-   }while(!connected || get_status()!=2);
-   connected = true;
+       process();
+       DBG("wifiConnected:%d\n", isConnected);
+       Thread::wait(1000);
+   }while(!isConnected || get_status()!=2);
    m_led.wifi_on();
 }
 
 time_t Wifi::get_time() {
-    m_esp.Process();
+    process();
     return cmd.GetTime();
 }
 
 /*set the starting time of data collecction*/
 void Wifi::setup_time() {
 
-    m_esp.Process();
+    process();
 
-    DBG("wifiConnected:%d\n", connected);
-    while(!connected){
-      Thread::wait(1);
-      process();
-      DBG("wifiConnected:%d\n", connected);
-    }
-
+    DBG("Adjusting time...");
+    if (!isConnected)
+      reconnect();
     //re-get time in case that the timestamp is not valid (e.g., 1970-1-1)
     int currenttime;
     while((currenttime = get_time()) < 1471651200){
-      Thread::wait(1);
+      Thread::wait(1000);
       process();
       DBG("current time int: %d\n", currenttime);
     }

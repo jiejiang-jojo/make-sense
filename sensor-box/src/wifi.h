@@ -17,7 +17,7 @@ class Wifi {
 
 public:
 
-  bool connected = false;
+  bool isConnected = false;
 
   // Initialize a REST client on the connection to esp-link
   ELClientRest rest;
@@ -30,7 +30,7 @@ public:
   }
   void callback_handler(void *response);
   int get_status();
-  int setup();
+  void setup();
   void setup_time();
   time_t get_time();
   void process();

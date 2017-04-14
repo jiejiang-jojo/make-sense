@@ -175,7 +175,7 @@ void get_allData(){
             // stop collecting data for some period
             wait(PRAVICY_PERIOD);
             pravicy_active = false;
-            if (wifi.connected)
+            if (wifi.isConnected)
               led.wifi_on();
             else
               led.wifi_off();
@@ -291,7 +291,7 @@ void send_data(const char* path){
     memset(response, 0, BUFLEN);
     uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
     if(code == HTTP_STATUS_OK){
-        DBG("POST successful: %s\n", response);
+        DBG("POST successful -> %s\n", response);
         //only move the read pointer to next page when post is successful
         read_pointer = read_pointer + N25Q::PAGE_SIZE;
         queue_size--;
@@ -299,7 +299,7 @@ void send_data(const char* path){
         if(read_pointer==N25Q::FLASH_SIZE)
             read_pointer = 0;
     } else {
-        DBG("POST failed: %d\n", code);
+        DBG("POST failed [%d]\n", code);
 //            reconnect_wifi(); //when server restarted, sensor box keeps getting post failures
     }
 }
@@ -386,13 +386,13 @@ int main(void){
         //process any callbacks coming from esp_link
         wifi.process();
         if (!pravicy_active)
-          if (wifi.connected)
+          if (wifi.isConnected)
             led.wifi_on();
           else
             led.wifi_off();
 
         //if wifi is connected and there is data packet in the queue
-        if(wifi.connected && queue_size>0)
+        if(wifi.isConnected && queue_size>0)
             send_data("/box-record");
         Thread::wait(POST_RATE);
     }
