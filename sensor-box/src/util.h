@@ -16,4 +16,6 @@ void str2mac(const char * src, uint8 * target);
 
 void print_mac(const uint8 * mac);
 
+void phex(uint8_t* str);
+
 #endif

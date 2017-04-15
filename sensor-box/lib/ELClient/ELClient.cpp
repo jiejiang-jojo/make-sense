@@ -43,7 +43,7 @@ ELClientPacket* ELClient::protoCompletedCb(void) {
   uint16_t crc = crc16Data(_proto.buf, _proto.dataLen-2, 0);
   uint16_t resp_crc = *(uint16_t*)(_proto.buf+_proto.dataLen-2);
   if (crc != resp_crc) {
-    printf("ELC: Invalid CRC, %d, %d\n\r", crc, resp_crc);
+    printf("ELC: Invalid CRC, %d != %d (REF)\n", crc, resp_crc);
 //    return NULL;
   }
 

@@ -23,8 +23,6 @@ void ELClientRest::restCallback(void *res)
   ELClientResponse *resp = (ELClientResponse *)res;
 
   resp->popArg(&_status, sizeof(_status));
-  printf("REST code ");
-  printf("%d\n\r", _status);
 
   _len = resp->popArgPtr(&_data);
 }

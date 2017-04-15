@@ -166,9 +166,9 @@ void get_allData(){
             wait(PRIVACY_PERIOD);
             box_state.PrivacyOff();
         }
-        DBG("SndCnt:%d GstCnt:%d\n", sound_counter, gesture_counter);
         read_sensors(counter);
-        DBG("Reading(%10d)[%d]: %4dT %4dH %4dL %4dR %4dD %4dS %4d %4d %4d %4d %4d\n",
+        DBG("SndCnt:%d GstCnt:%d\n", sound_counter, gesture_counter);
+        DBG("Reading(%d)[%d]: %4dT %4dH %4dL %4dR %4dD %4dS %4d %4d %4d %4d %4d\n",
           write_pointer,
           recordsW.entries[counter].seconds,
           recordsW.entries[counter].ctemp,
@@ -192,7 +192,7 @@ void get_allData(){
         }
 
 
-        Thread::wait(SAMPLE_RATE);
+        Thread::wait(SAMPLE_RATE * 1000);
     }
 }
 
@@ -219,15 +219,6 @@ sprintf(buf,"{\"B\":%d,\"Q\":\"%s\",\"T\":%d,\"P\":%d,\"H\":%d,\"G\":%d,\"L\":%d
         return buf;
 }
 
- void phex(uint8_t* str)
-{
-    unsigned char i;
-    for(i = 0; i < 16; ++i)
-        DBG("%.2x", str[i]);
-    DBG("\n");
-}
-
-
 const char *
 packet_format(char * buf, char jsons[PACKET_LEN][256], int n) {
   buf[0] = 0;
@@ -242,10 +233,10 @@ packet_format(char * buf, char jsons[PACKET_LEN][256], int n) {
   return buf;
 }
 
-char format_single[PACKET_LEN][256];
 
 /*Sensor Data Send Thread*/
 void send_data(const char* path){
+
 
     //read a page of data from the flash
     flash_mutex.lock();
@@ -253,19 +244,20 @@ void send_data(const char* path){
     flash_mutex.unlock();
 
     //format the page of data into a json object
+    static char format_single[PACKET_LEN][256];
     for(int i=0; i<PACKET_LEN; i++){
       format_data(i, format_single[i]);
     }
-    char format_list[RECORDSTR_LEN];
-    uint8_t cipher_list[RECORDSTR_LEN];
-    char http_body[HTTP_LEN];
+    static char format_list[RECORDSTR_LEN];
     packet_format(format_list, format_single, PACKET_LEN);
     // DBG("Packet: %s\n", format_list);
 
     //data encryption using AES with mode CBC
+    static uint8_t cipher_list[RECORDSTR_LEN];
     AES128_CBC_encrypt_buffer(cipher_list, (uint8_t*)format_list, RECORDSTR_LEN, (uint8_t*)key, (uint8_t*)iv);
 
     //encode the encrypted data bytes using base64
+    static char http_body[HTTP_LEN];
     base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
 
     // DBG("Post len: %d\n", strlen(http_body));
@@ -273,11 +265,11 @@ void send_data(const char* path){
 
 
     //get post response from the server
-    char response[BUFLEN];
+    static char response[BUFLEN];
     memset(response, 0, BUFLEN);
     uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
     if(code == HTTP_STATUS_OK){
-        DBG("POST successful -> %s\n", response);
+        DBG("POST: successful -> %s\n", response);
         //only move the read pointer to next page when post is successful
         read_pointer = read_pointer + N25Q::PAGE_SIZE;
         queue_size--;
@@ -285,14 +277,14 @@ void send_data(const char* path){
         if(read_pointer==N25Q::FLASH_SIZE)
             read_pointer = 0;
     } else {
-        DBG("POST failed [%d]\n", code);
+        DBG("POST: failed -> %d\n", code);
 //            reconnect_wifi(); //when server restarted, sensor box keeps getting post failures
     }
 }
 
 /*Thread for checking whether privacy mode is triggered via gesture interruption*/
 void check_gesture(){
-    while(1){
+    while(true){
       if(gesture_flag==1 && gesture_available() ){
         gesture_INT.disable_irq();
         gesture_read = read_gesture();
@@ -305,7 +297,7 @@ void check_gesture(){
         gesture_flag = 0;
         gesture_INT.enable_irq();
       } else
-        Thread::wait(GESTURE_SAMPLE_RATE);
+        Thread::wait(GESTURE_SAMPLE_RATE * 1000);
     }
 }
 
@@ -313,7 +305,7 @@ void check_gesture(){
 void get_highFrequencyData(){
     float temp_sound;
     float temp_range;
-    while(1){
+    while(true){
         if(!box_state.IsPrivacyOn()){
             temp_range = read_range();
             temp_sound = read_sound();
@@ -323,7 +315,7 @@ void get_highFrequencyData(){
             if(range_read>temp_range)
                 range_read = temp_range;
         }
-        Thread::wait(HIGHFREQ_SAMPLE_RATE);
+        Thread::wait(HIGHFREQ_SAMPLE_RATE * 1000);
     }
 }
 
@@ -334,32 +326,27 @@ void get_serial_number(){
     device_id[0] = *block;
     device_id[1] = *(block + 1);
     sprintf(device_id_str, "%02X%02X", device_id[0], device_id[1]);
-    DBG("%02X%02X]...\n", device_id[0], device_id[1]);
 }
 
 int main(void){
 
     serial.baud(DBG_SERIAL_BAUD);
-    DBG("Starting [");
+    DBG("Started!");
+
     get_serial_number();
+    DBG("Device ID: %s\n", device_id_str);
 
     setup_range();
-
     setup_gesture();
-
     //attach the address of the detect_gesture function to the rising edge
     gesture_INT.fall(&detect_gesture);
-
     //time setup is after wifi setup (sntp)
     wifi.Setup();
 
     Thread thread[4];
     thread[0].start(get_allData);
-
     thread[1].start(get_highFrequencyData);
-
     thread[2].start(check_gesture);
-
     thread[3].start(bluetooth_scan_loop);
 
     while(1){
@@ -373,6 +360,6 @@ int main(void){
         else if(queue_size>0)
             send_data("/box-record");
 
-        Thread::wait(POST_RATE);
+        Thread::wait(POST_RATE * 1000);
     }
 }

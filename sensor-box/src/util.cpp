@@ -27,3 +27,12 @@ void print_mac(uint8 * mac)
 {
   DBG("%02X%02X%02X%02X%02X%02X", mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]);
 }
+
+void phex(uint8_t* str) {
+    unsigned char i;
+    for(i = 0; i < 16; ++i)
+        DBG("%.2x", str[i]);
+    DBG("\n");
+}
+
+
