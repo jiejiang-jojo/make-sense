@@ -15,7 +15,7 @@ glibr GSensor(P0_27, P0_28);
 void setup_gesture()
 {
   GSensor.ginit();
-  GSensor.setGestureLEDDrive(LED_DRIVE_12_5MA);
+  GSensor.setGestureLEDDrive(LED_DRIVE_25MA);
   GSensor.enableGestureSensor(true);
   GSensor.enableLightSensor();
 }
