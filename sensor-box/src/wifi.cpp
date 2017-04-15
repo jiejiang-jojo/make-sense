@@ -7,7 +7,7 @@
 
 /* Callback made from esp-link to notify of wifi status changes
 Here we print something out and set a global flag*/
-void Wifi::callback_handler(void *response) {
+void Wifi::CallbackHandler(void *response) {
   ELClientResponse *res = (ELClientResponse*)response;
   if (res->argc() == 1) {
     uint8_t status;
@@ -15,38 +15,38 @@ void Wifi::callback_handler(void *response) {
 
     if(status == STATION_GOT_IP) {
       DBG("WIFI CONNECTED\n");
-      isConnected = true;
+      box_state_.WifiOn();
     } else {
       DBG("WIFI NOT READY: %d\n", status);
-      isConnected = false;
+      box_state_.WifiOff();
     }
   }
 }
 
 /*get wifi status*/
-int Wifi::get_status(){
-    m_esp.GetWifiStatus();
+int Wifi::GetStatus(){
+    esp_.GetWifiStatus();
     ELClientPacket *packet;
-    if ((packet=m_esp.WaitReturn()) != NULL)
+    if ((packet=esp_.WaitReturn()) != NULL)
         return packet->value;
     return 0;
 }
 
 /*set up wifi connection to data server*/
-void Wifi::setup() {
+void Wifi::Sync() {
     DBG("EL-Client starting!\n");
 
     // Sync-up with esp-link, this is required at the start of any sketch and initializes the
     // callbacks to the wifi status change callback. The callback gets called with the initial
     // status right after Sync() below completes.
-    m_esp.wifiCb.attach(this, &Wifi::callback_handler); // wifi status change callback, optional (delete if not desired)
+    esp_.wifiCb.attach(this, &Wifi::CallbackHandler); // wifi status change callback, optional (delete if not desired)
     bool ok;
     do {
-        ok = m_esp.Sync();      // sync up with esp-link, blocks for up to 2 seconds
+        ok = esp_.Sync();      // sync up with esp-link, blocks for up to 2 seconds
         if (!ok) DBG("EL-Client sync failed!\n");
     } while(!ok);
     DBG("EL-Client synced!\n");
-    DBG("Wifi status: %d\n", get_status());
+    DBG("Wifi status: %d\n", GetStatus());
 
     // Set up the REST client to talk to "host", this doesn't connect to that server,
     // it just sets-up stuff on the esp-link side
@@ -58,37 +58,36 @@ void Wifi::setup() {
 }
 
 /*when there is no connection to the data server, try to reconnect*/
-void Wifi::reconnect(){
+void Wifi::Connect(){
    DBG("reconnecting...\n");
    //wifi status list:
    //enum {wifiIsDisconnected, wifiIsConnected, wifiGotIP}
    do{
-       setup();
-       process();
-       DBG("wifiConnected:%d\n", isConnected);
+       Sync();
+       Process();
+       DBG("wifiConnected:%d\n", box_state_.IsWifiOn());
        Thread::wait(1000);
-   }while(!isConnected || get_status()!=2);
-   m_led.wifi_on();
+   } while(!box_state_.IsWifiOn() || GetStatus()!=2);
 }
 
-time_t Wifi::get_time() {
-    process();
+time_t Wifi::GetTime() {
+    Process();
     return cmd.GetTime();
 }
 
 /*set the starting time of data collecction*/
-void Wifi::setup_time() {
+void Wifi::Setup() {
 
-    process();
+    Process();
 
     DBG("Adjusting time...");
-    if (!isConnected)
-      reconnect();
+    if (!box_state_.IsWifiOn())
+      Connect();
     //re-get time in case that the timestamp is not valid (e.g., 1970-1-1)
     int currenttime;
-    while((currenttime = get_time()) < 1471651200){
+    while((currenttime = GetTime()) < 1471651200){
       Thread::wait(1000);
-      process();
+      Process();
       DBG("current time int: %d\n", currenttime);
     }
 
@@ -96,9 +95,8 @@ void Wifi::setup_time() {
     time_t seconds = time(NULL);
     char * timestr = ctime(&seconds);
     DBG("current time str: %s\n", timestr);
-    m_led.wifi_on();
 }
 
-void Wifi::process() {
-  m_esp.Process();
+void Wifi::Process() {
+  esp_.Process();
 }

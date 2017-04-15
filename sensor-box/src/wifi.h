@@ -3,6 +3,7 @@
 
 #include "mbed.h"
 #include "led.h"
+#include "BoxState.h"
 #include "ELClient.h"
 #include "ELClientRest.h"
 #include "ELClientCmd.h"
@@ -10,14 +11,12 @@
 
 class Wifi {
 
-  Serial m_serial;
-  ELClient m_esp;
-  LED m_led;
+  Serial serial_;
+  ELClient esp_;
+  BoxState &box_state_;
 
 
 public:
-
-  bool isConnected = false;
 
   // Initialize a REST client on the connection to esp-link
   ELClientRest rest;
@@ -25,16 +24,16 @@ public:
   // Initialize CMD client (for GetTime)
   ELClientCmd cmd;
 
-  Wifi(PinName tx, PinName rx, LED led): m_serial(tx, rx), m_esp(&m_serial, &m_serial), m_led(led), rest(&m_esp), cmd(&m_esp){
-    m_serial.baud(ESP_LINK_SERIAL_BAUD);   // the baud rate here needs to match the esp-link config
+  Wifi(PinName tx, PinName rx, BoxState &box_state): serial_(tx, rx), esp_(&serial_, &serial_), box_state_(box_state), rest(&esp_), cmd(&esp_){
+    serial_.baud(ESP_LINK_SERIAL_BAUD);   // the baud rate here needs to match the esp-link config
   }
-  void callback_handler(void *response);
-  int get_status();
-  void setup();
-  void setup_time();
-  time_t get_time();
-  void process();
-  void reconnect();
+  void CallbackHandler(void *response);
+  int GetStatus();
+  void Sync();
+  void Setup();
+  time_t GetTime();
+  void Process();
+  void Connect();
 };
 
 #endif

@@ -30,7 +30,9 @@ char device_id_str[20] = {0};
 //LED lights
 LED led(P2_5, P2_4, P2_3);
 
-Wifi wifi(P4_28, P4_29, led);
+BoxState box_state(led);
+
+Wifi wifi(P4_28, P4_29, box_state);
 
 //Gesture interrupt
 InterruptIn gesture_INT(P2_13);
@@ -46,7 +48,6 @@ float sound_read_sq = 0;
 float sound_read = 0;
 int sound_counter = 0;
 float range_read = 0;
-bool pravicy_active = false;
 int light_read = 0;
 
 // 128bit key
@@ -96,20 +97,10 @@ void detect_gesture() {
     gesture_counter++;
 }
 
-int read_time(){
-
-    int timestamp = time(NULL); //Timestamp
-    //check whether it is a valid timestamp
-    if (timestamp<1471651200) {
-        wifi.setup_time();
-    }
-    return time(NULL); //Timestamp
-}
-
 /*read sensor data from all sensor modules*/
 void read_sensors(int num){
     // BoxID will be appended when the records are sent to server
-    recordsW.entries[num].seconds = read_time();
+    recordsW.entries[num].seconds = time(NULL);
     recordsW.entries[num].ctemp = read_ctemp();
     recordsW.entries[num].humid = read_humid();
 
@@ -170,15 +161,10 @@ void push_to_flash(){
 void get_allData(){
     int counter = 0;
     while(1){
-        if(pravicy_active)
-        {
+        if(box_state.IsPrivacyOn()) {
             // stop collecting data for some period
-            wait(PRAVICY_PERIOD);
-            pravicy_active = false;
-            if (wifi.isConnected)
-              led.wifi_on();
-            else
-              led.wifi_off();
+            wait(PRIVACY_PERIOD);
+            box_state.PrivacyOff();
         }
         DBG("SndCnt:%d GstCnt:%d\n", sound_counter, gesture_counter);
         read_sensors(counter);
@@ -311,10 +297,9 @@ void check_gesture(){
         gesture_INT.disable_irq();
         gesture_read = read_gesture();
         light_read = read_light();
-        if(!pravicy_active){
+        if(!box_state.IsPrivacyOn()){
             if(gesture_read==DIR_UP||gesture_read==DIR_DOWN){
-                pravicy_active = true;
-                led.off();
+                box_state.PrivacyOn();
             }
         }
         gesture_flag = 0;
@@ -329,7 +314,7 @@ void get_highFrequencyData(){
     float temp_sound;
     float temp_range;
     while(1){
-        if(!pravicy_active){
+        if(!box_state.IsPrivacyOn()){
             temp_range = read_range();
             temp_sound = read_sound();
             sound_counter++;
@@ -358,8 +343,6 @@ int main(void){
     DBG("Starting [");
     get_serial_number();
 
-    led.power_on();
-
     setup_range();
 
     setup_gesture();
@@ -367,11 +350,8 @@ int main(void){
     //attach the address of the detect_gesture function to the rising edge
     gesture_INT.fall(&detect_gesture);
 
-    //set up wifi connection to the data server
-    wifi.setup();
-
     //time setup is after wifi setup (sntp)
-    wifi.setup_time();
+    wifi.Setup();
 
     Thread thread[4];
     thread[0].start(get_allData);
@@ -384,18 +364,14 @@ int main(void){
 
     while(1){
         //process any callbacks coming from esp_link
-        wifi.process();
-        if (!pravicy_active)
-          if (wifi.isConnected)
-            led.wifi_on();
-          else
-            led.wifi_off();
-
+        wifi.Process();
         //if wifi is connected and there is data packet in the queue
-        if(wifi.isConnected && queue_size>0)
+        if (!box_state.IsWifiOn()) {
+          DBG("no wifi on!");
+          wifi.Sync();
+        }
+        else if(queue_size>0)
             send_data("/box-record");
-        else
-            wifi.setup();
 
         Thread::wait(POST_RATE);
     }

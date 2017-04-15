@@ -16,7 +16,7 @@
 #define BLUETOOTH_RSSI_MIN -104
 #define BLUETOOTH_ACTIVE_PERIOD 120
 #define PARTICULATE_SAMPLE_SIZE 3
-#define PRAVICY_PERIOD 6   // in seconds
+#define PRIVACY_PERIOD 6   // in seconds
 
 
 #define BOX_ID 108                         //sensor box ID
