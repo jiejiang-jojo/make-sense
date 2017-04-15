@@ -394,6 +394,9 @@ int main(void){
         //if wifi is connected and there is data packet in the queue
         if(wifi.isConnected && queue_size>0)
             send_data("/box-record");
+        else
+            wifi.setup();
+
         Thread::wait(POST_RATE);
     }
 }
