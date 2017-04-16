@@ -27,9 +27,10 @@ void Wifi::CallbackHandler(void *response) {
 int Wifi::GetStatus(){
     esp_.GetWifiStatus();
     ELClientPacket *packet;
-    if ((packet=esp_.WaitReturn()) != NULL)
-        return packet->value;
-    return 0;
+    uint32_t value = 0;
+    if ((packet=esp_.WaitReturn(1000)) != NULL)
+        value = packet->value;
+    return value;
 }
 
 /*set up wifi connection to data server*/

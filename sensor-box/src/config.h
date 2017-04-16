@@ -12,7 +12,7 @@
 
 #define PRIVACY_PERIOD 6   // seconds
 #define SAMPLE_RATE 3    // seconds
-#define POST_RATE 3      // seconds
+#define POST_RATE 6      // seconds
 #define HIGHFREQ_SAMPLE_RATE 0.001  //seconds
 #define GESTURE_SAMPLE_RATE 0.1  //seconds
 

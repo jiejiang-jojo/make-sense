@@ -2,6 +2,7 @@
 #define _EL_CLIENT_H_
 
 #include "mbed.h"
+#include "rtos.h"
 #include "ELClientResponse.h"
 #include "FP.h"
 
@@ -47,6 +48,11 @@ typedef struct {
   uint8_t isEsc;
 } ELClientProtocol;
 
+typedef struct {
+  uint8_t * buf;
+  uint16_t dataLen;
+} ELFragment;
+
 class ELClient {
   public:
     // Create an esp-link client based on a stream and with a specified debug output stream.
@@ -77,6 +83,7 @@ class ELClient {
     // create an ELClientResponse.
     ELClientPacket *WaitReturn(uint32_t timeout=ESP_TIMEOUT);
 
+    void Recieve(void);
     //== Commands built-into ELClient
     // Initialize and synchronize communication with esp-link with a timeout in milliseconds,
     // and remove all existing callbacks. Registers the wifiCb and returns true on success
@@ -87,12 +94,17 @@ class ELClient {
     // Callback for wifi status changes that must be attached before calling Sync
     FP<void, void*> wifiCb;
 
-  //private:
     Serial* _serial;
+  private:
     bool _debugEn;
     uint16_t crc;
     ELClientProtocol _proto;
     uint8_t _protoBuf[128];
+    Queue<ELFragment, 5> _fragment_queue;
+    uint8_t f_buf[128];
+    ELFragment fragment;
+
+
 
     void init();
     void DBG(const char* info);

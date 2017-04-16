@@ -262,12 +262,10 @@ void send_data(const char* path){
 
     static char response[BUFLEN];
     memset(response, 0, BUFLEN);
-    // DBG("Post len: %d\n", strlen(http_body));
-    __disable_irq();
+    DBG("Post len: %d\n", strlen(http_body));
     wifi.rest.post(path, http_body);
     //get post response from the server
     uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
-    __enable_irq();
     if(code == HTTP_STATUS_OK){
         DBG("POST: successful -> %s\n", response);
         //only move the read pointer to next page when post is successful

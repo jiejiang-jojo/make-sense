@@ -13,89 +13,67 @@
 //===== Input
 
 // Process a received SLIP message
-ELClientPacket* ELClient::protoCompletedCb(void) {
-  // the packet starts with a ELClientPacket
-  ELClientPacket* packet = (ELClientPacket*)_proto.buf;
-//  if (_debugEn) {
-//    printf("ELC: got ");
-//    printf("%d", _proto.dataLen);
-//    printf(" @");
-////    _debug->printf("%d", (uint32_t)_proto.buf, 16);
-//    printf("%d", (uint32_t)_proto.buf);
-//    printf(": ");
-////    _debug->printf(packet->cmd, 16);
-//    printf("%d", packet->cmd);
-//    printf(" ");
-////    _debug->printf(packet->value, 16);
-//    printf("%d", packet->value);
-//    printf(" ");
-////    _debug->printf(packet->argc, 16);
-//    printf("%d", packet->argc);
-//    for (uint16_t i=8; i<_proto.dataLen; i++) {
-//      printf(" ");
-////      _debug->printf(*(uint8_t*)(_proto.buf+i), 16);
-//      printf("%d", *(uint8_t*)(_proto.buf+i));
-//    }
-//    printf("\n\r");
-//  }
+ELClientPacket* ELClient::Process(void) {
+
+  osEvent evt = _fragment_queue.get(1);
+  if (evt.status != osEventMessage)
+    return NULL;
+  ELFragment * p = (ELFragment*)evt.value.p;
+  fragment.dataLen = p->dataLen;
+  memcpy(fragment.buf, p->buf, p->dataLen);
+  delete p->buf;
+  delete p;
 
   // verify CRC
-  uint16_t crc = crc16Data(_proto.buf, _proto.dataLen-2, 0);
-  uint16_t resp_crc = *(uint16_t*)(_proto.buf+_proto.dataLen-2);
-  for(int i=0; i<_proto.dataLen-2; i++)
-    printf("%02X", _proto.buf[i]);
-  printf("\nELC: CRC[%04X] = %04X (%04X)\n", _proto.dataLen, crc, resp_crc);
+  uint16_t crc = crc16Data(fragment.buf, fragment.dataLen-2, 0);
+  uint16_t resp_crc = *(uint16_t*)(fragment.buf+fragment.dataLen-2);
+  // for(int i=0; i<fragment.dataLen-2; i++)
+  //   printf("%02X", fragment.buf[i]);
+  // printf("\nELC: CRC[%04X] = %04X (%04X)\n", fragment.dataLen, crc, resp_crc);
   if (crc != resp_crc) {
-    for(int i=0; i<_proto.dataLen-2; i++)
-      printf("%02X", _proto.buf[i]);
+    for(int i=0; i<fragment.dataLen-2; i++)
+      printf("%02X", fragment.buf[i]);
     printf("\nELC: Invalid CRC, %04X != %04X (REF)\n", crc, resp_crc);
     return NULL;
   }
 
+  ELClientPacket* packet = (ELClientPacket*)fragment.buf;
   // dispatch based on command
   if (packet->cmd == CMD_RESP_V) {
     // value response
-//    printf("RESP_V: ");
-//    printf("%d\n\r", packet->value);
     return packet;
   } else if (packet->cmd == CMD_RESP_CB) {
     FP<void, void*> *fp;
-    // callback reponse
-    // _debug->printf("RESP_CB: ");
-    // _debug->printf("%d", packet->value);
-    // _debug->printf(" ");
-    // _debug->printf("%d\n", packet->argc);
     fp = (FP<void, void*>*)packet->value;
     if (fp->attached()) {
       ELClientResponse resp(packet);
       (*fp)(&resp);
     }
-    return NULL;
   } else {
     // command (NOT IMPLEMENTED)
     // _debug->printf("CMD??\n");
-    return NULL;
   }
+  return NULL;
 }
 
 // Read all characters available on the serial input and process any messages that arrive, but
 // stop if a non-callback response comes in
-ELClientPacket *ELClient::Process() {
+void ELClient::Recieve() {
   int value;
   while (_serial->readable()) {
     value = _serial->getc();
-//    printf("value is: %d\n\r", value);
     if (value == SLIP_ESC) {
       _proto.isEsc = 1;
     } else if (value == SLIP_END) {
-      printf("%%");
-      ELClientPacket* packet = _proto.dataLen >= 8 ? protoCompletedCb() : 0;
+      if (_proto.dataLen >= 8){
+        ELFragment * f = new ELFragment();
+        f->dataLen = _proto.dataLen;
+        f->buf = new uint8_t[_proto.dataLen];
+        memcpy(f->buf, _proto.buf, _proto.dataLen);
+        _fragment_queue.put(f);
+      }
       _proto.dataLen = 0;
       _proto.isEsc = 0;
-      if (packet != NULL) {
-//        printf("packet returned \n\r");
-        return packet;
-      }
     } else {
       if (_proto.isEsc) {
         if (value == SLIP_ESC_END) value = SLIP_END;
@@ -107,8 +85,6 @@ ELClientPacket *ELClient::Process() {
       }
     }
   }
-//  printf("returned null value!!!!\n\r");
-  return NULL;
 }
 
 //===== Output
@@ -191,6 +167,8 @@ void ELClient::init() {
   _proto.bufSize = sizeof(_protoBuf);
   _proto.dataLen = 0;
   _proto.isEsc = 0;
+  _serial->attach(callback(this, &ELClient::Recieve));
+  fragment.buf = f_buf;
 }
 
 ELClient::ELClient(Serial* serial) :
@@ -258,7 +236,10 @@ bool ELClient::Sync(uint32_t timeout) {
   // empty the response queue hoping to find the wifiCb address
   ELClientPacket *packet;
   while ((packet = WaitReturn(timeout)) != NULL) {
-    if (packet->value == (uint32_t)&wifiCb) { printf("SYNC!\n\r"); return true; }
+    if (packet->value == (uint32_t)&wifiCb) { 
+      printf("SYNC!\n\r"); 
+      return true;
+    }
     printf("BAD: ");
     printf("%d\n\r", packet->value);
   }
