@@ -24,7 +24,7 @@ public:
   // Initialize CMD client (for GetTime)
   ELClientCmd cmd;
 
-  Wifi(PinName tx, PinName rx, BoxState &box_state): serial_(tx, rx), esp_(&serial_, &serial_), box_state_(box_state), rest(&esp_), cmd(&esp_){
+  Wifi(PinName tx, PinName rx, BoxState &box_state): serial_(tx, rx), esp_(&serial_), box_state_(box_state), rest(&esp_), cmd(&esp_){
     serial_.baud(ESP_LINK_SERIAL_BAUD);   // the baud rate here needs to match the esp-link config
   }
   void CallbackHandler(void *response);

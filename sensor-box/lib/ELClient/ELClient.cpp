@@ -42,9 +42,14 @@ ELClientPacket* ELClient::protoCompletedCb(void) {
   // verify CRC
   uint16_t crc = crc16Data(_proto.buf, _proto.dataLen-2, 0);
   uint16_t resp_crc = *(uint16_t*)(_proto.buf+_proto.dataLen-2);
+  for(int i=0; i<_proto.dataLen-2; i++)
+    printf("%02X", _proto.buf[i]);
+  printf("\nELC: CRC[%04X] = %04X (%04X)\n", _proto.dataLen, crc, resp_crc);
   if (crc != resp_crc) {
-    printf("ELC: Invalid CRC, %d != %d (REF)\n", crc, resp_crc);
-//    return NULL;
+    for(int i=0; i<_proto.dataLen-2; i++)
+      printf("%02X", _proto.buf[i]);
+    printf("\nELC: Invalid CRC, %04X != %04X (REF)\n", crc, resp_crc);
+    return NULL;
   }
 
   // dispatch based on command
@@ -56,10 +61,10 @@ ELClientPacket* ELClient::protoCompletedCb(void) {
   } else if (packet->cmd == CMD_RESP_CB) {
     FP<void, void*> *fp;
     // callback reponse
-    _debug->printf("RESP_CB: ");
-    _debug->printf("%d", packet->value);
-    _debug->printf(" ");
-    _debug->printf("%d\n", packet->argc);
+    // _debug->printf("RESP_CB: ");
+    // _debug->printf("%d", packet->value);
+    // _debug->printf(" ");
+    // _debug->printf("%d\n", packet->argc);
     fp = (FP<void, void*>*)packet->value;
     if (fp->attached()) {
       ELClientResponse resp(packet);
@@ -68,7 +73,7 @@ ELClientPacket* ELClient::protoCompletedCb(void) {
     return NULL;
   } else {
     // command (NOT IMPLEMENTED)
-    _debug->printf("CMD??\n");
+    // _debug->printf("CMD??\n");
     return NULL;
   }
 }
@@ -83,6 +88,7 @@ ELClientPacket *ELClient::Process() {
     if (value == SLIP_ESC) {
       _proto.isEsc = 1;
     } else if (value == SLIP_END) {
+      printf("%%");
       ELClientPacket* packet = _proto.dataLen >= 8 ? protoCompletedCb() : 0;
       _proto.dataLen = 0;
       _proto.isEsc = 0;

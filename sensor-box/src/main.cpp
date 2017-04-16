@@ -166,8 +166,8 @@ void get_allData(){
             wait(PRIVACY_PERIOD);
             box_state.PrivacyOff();
         }
-        read_sensors(counter);
         DBG("SndCnt:%d GstCnt:%d\n", sound_counter, gesture_counter);
+        read_sensors(counter);
         DBG("Reading(%d)[%d]: %4dT %4dH %4dL %4dR %4dD %4dS %4d %4d %4d %4d %4d\n",
           write_pointer,
           recordsW.entries[counter].seconds,
@@ -260,14 +260,14 @@ void send_data(const char* path){
     static char http_body[HTTP_LEN];
     base64_encode(http_body, (char *) cipher_list, RECORDSTR_LEN);
 
-    // DBG("Post len: %d\n", strlen(http_body));
-    wifi.rest.post(path, http_body);
-
-
-    //get post response from the server
     static char response[BUFLEN];
     memset(response, 0, BUFLEN);
+    // DBG("Post len: %d\n", strlen(http_body));
+    __disable_irq();
+    wifi.rest.post(path, http_body);
+    //get post response from the server
     uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
+    __enable_irq();
     if(code == HTTP_STATUS_OK){
         DBG("POST: successful -> %s\n", response);
         //only move the read pointer to next page when post is successful
