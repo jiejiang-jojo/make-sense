@@ -38,7 +38,7 @@ THE SOFTWARE.
 */
 
 #include "BGLib.h"
-BGLib::BGLib(BufferedSoftSerial *module, BufferedSoftSerial *output, uint8_t pMode) {
+BGLib::BGLib(BufferedSoftSerial *module, Serial *output, uint8_t pMode) {
 
     uModule = module;
     uOutput = output;
@@ -499,16 +499,18 @@ void BGLib::setModuleUART(BufferedSoftSerial *module) {
     uModule = module;
 }
 
-void BGLib::setOutputUART(BufferedSoftSerial *output) {
+void BGLib::setOutputUART(Serial *output) {
     uOutput = output;
+}
+
+void BGLib::reset_rxbuf(){
+  bgapiRXBufferPos = 0;
 }
 
 uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
     #ifdef _DEBUG_
         // DEBUG: output hex value of incoming character
-        if (ch < 16) uOutput->putc(0x30);    // leading '0'
-        uOutput->printf("%X", ch);              // actual hex value
-        uOutput->putc(0x20);                 // trailing ' '
+        uOutput->printf("%02X", ch);              // actual hex value
     #endif
 
     if (bgapiRXBufferPos == bgapiRXBufferSize) {
@@ -537,8 +539,7 @@ uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
             bgapiRXBuffer[bgapiRXBufferPos++] = ch;
         } else {
             #ifdef _DEBUG_
-                uOutput->printf("*** Packet frame sync error! Expected .0000... binary, got 0x \r\n");
-                uOutput->printf("%X",ch);
+                uOutput->printf("*** Packet frame sync error! Expected .0000... binary, got %02X \r\n", ch);
             #endif
             return 1; // packet format error
         }
@@ -548,14 +549,18 @@ uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
         if (bgapiRXBufferPos == 2) {
             // just received "Length Low" byte, so store expected packet length
             bgapiRXDataLen = ch + ((bgapiRXBuffer[0] & 0x03) << 8);
+            // if (bgapiRXBuffer[0] == 0x80 && bgapiRXBuffer[1] == 0x2A)
+            //     bgapiRXDataLen = 12;
+
+            #ifdef _DEBUG_
+                uOutput->printf("$[%d]$", bgapiRXDataLen);
+            #endif
         } else if (bgapiRXBufferPos == bgapiRXDataLen + 4) {
             // just received last expected byte
             #ifdef _DEBUG_
                 uOutput->printf("\n<=[ ");
                 for (uint8_t i = 0; i < bgapiRXBufferPos; i++) {
-                    if (bgapiRXBuffer[i] < 16) uOutput->putc(0x30);
-                    uOutput->printf("%x",bgapiRXBuffer[i]);
-                    uOutput->putc(0x20);
+                    uOutput->printf("%02X",bgapiRXBuffer[i]);
                 }
                 uOutput->printf("] \r\n");
             #endif
@@ -1064,6 +1069,7 @@ uint8_t BGLib::sendCommand(uint16_t len, uint8_t commandClass, uint8_t commandId
 
     if (onTXCommandComplete) onTXCommandComplete();
     free(bgapiTXBuffer);
+    reset_rxbuf();
     return 0;
 }
 

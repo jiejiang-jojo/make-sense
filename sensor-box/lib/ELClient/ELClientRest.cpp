@@ -117,7 +117,7 @@ uint16_t ELClientRest::waitResponse(char* data, uint16_t maxLen, uint32_t timeou
 //  while (_status == 0 && (millis() - wait < timeout)) {
   while (_status == 0 && (timer.read_ms() < timeout)) {
     _elc->Process();
-    Thread::wait(0.001);
+    Thread::wait(10);
   }
   timer.stop();
   return getResponse(data, maxLen);

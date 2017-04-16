@@ -1,7 +1,7 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#define DBG_SERIAL_BAUD 38400
+#define DBG_SERIAL_BAUD 115200
 #define ESP_LINK_SERIAL_BAUD 115200
 #define BLE_SERIAL_BAUD 38400
 
@@ -16,7 +16,7 @@
 #define HIGHFREQ_SAMPLE_RATE 0.001  //seconds
 #define GESTURE_SAMPLE_RATE 0.1  //seconds
 
-#define BLUETOOTH_SCAN_RATE 10   //seconds
+#define BLUETOOTH_SCAN_RATE 3   //seconds
 #define BLUETOOTH_ACTIVE_PERIOD 10
 #define BLUETOOTH_SCAN_REST_PERIOD 0.5
 #define BLUETOOTH_TIMEOUT 1

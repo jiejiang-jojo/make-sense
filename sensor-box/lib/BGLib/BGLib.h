@@ -45,7 +45,7 @@ THE SOFTWARE.
 
 
 // uncomment this line for Serial.println() debug output
-//#define DEBUG
+// #define _DEBUG_
 
 #define BGLIB_SYSTEM_ENDPOINT_API                                   0
 #define BGLIB_SYSTEM_ENDPOINT_TEST                                  1
@@ -1197,7 +1197,7 @@ struct ble_msg_dfu_boot_evt_t {
 class BGLib {
     public:
         //BGLib(BufferedSerial *module=0, BufferedSerial *output=0, uint8_t pMode=0);
-        BGLib(BufferedSoftSerial *module=0, BufferedSoftSerial *output=0, uint8_t pMode=0);
+        BGLib(BufferedSoftSerial *module=0, Serial *output=0, uint8_t pMode=0);
         uint8_t checkActivity(uint16_t timeout=0);
         uint8_t checkError();
         uint8_t checkTimeout();
@@ -1213,8 +1213,9 @@ class BGLib {
         //void setOutputUART(BufferedSerial *debug);
 
         void setModuleUART(BufferedSoftSerial *module);
-        void setOutputUART(BufferedSoftSerial *debug);
+        void setOutputUART(Serial *debug);
 
+        void reset_rxbuf();
         uint8_t parse(uint8_t ch, uint8_t packetMode=0);
         uint8_t sendCommand(uint16_t len, uint8_t commandClass, uint8_t commandId, void *payload=0);
 
@@ -1917,7 +1918,7 @@ class BGLib {
         uint8_t *packetData;
 
         BufferedSoftSerial *uModule; // required UART object with module connection
-        BufferedSoftSerial *uOutput; // optional UART object for host/debug connection
+        Serial *uOutput; // optional UART object for host/debug connection
         Timer pTimer;
 
         bool busy;

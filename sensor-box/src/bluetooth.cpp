@@ -11,8 +11,10 @@
 DigitalOut RES_PIN(P0_5);
 #endif
 
+extern Serial serial;
+
 BufferedSoftSerial eggble(P0_0, P0_1); // tx, rx for Bluetooth
-BGLib ble112((BufferedSoftSerial *)&eggble, 0, 1);
+BGLib ble112((BufferedSoftSerial *)&eggble, &serial, 1);
 
 
 // ##### Configuration of bands
@@ -141,31 +143,33 @@ void bleinit(){
     #endif
 }
 
+void checkActivity(){
+    while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+}
+
 void bluetooth_scan_loop() {
     DBG("BLE scan loop starting...\n");
     bleinit();
 
     // clear whitelist
-    ble112.ble_cmd_system_whitelist_clear();
-    while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+    ble112.ble_cmd_system_whitelist_clear();checkActivity();
 
     for(int i=0; i<BLUETOOTH_NUM; i++) {
       // append a mac adress to the whitelist
       ble112.ble_cmd_system_whitelist_append(bt_reading.macs[i],0);
-      while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+      checkActivity();
     }
 
     // set scan policy for only scan devices in the whitelist
-    ble112.ble_cmd_gap_set_filtering(BGLIB_GAP_SCAN_POLICY_WHITELIST,BGLIB_GAP_ADV_POLICY_ALL,1); while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+    ble112.ble_cmd_gap_set_filtering(BGLIB_GAP_SCAN_POLICY_WHITELIST,BGLIB_GAP_ADV_POLICY_ALL,1); checkActivity();
     // set scan interval and window
-    ble112.ble_cmd_gap_set_scan_parameters(0xC8, 0xC8, 0); while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
-
+    ble112.ble_cmd_gap_set_scan_parameters(0xC0, 0xC0, 0); checkActivity();
 
     Timer scan_timer;
     while(1){
       time_t seconds = time(NULL);
       // DBG("scanning... %ld\n\r", seconds);
-      ble112.ble_cmd_gap_discover(BGLIB_GAP_DISCOVER_GENERIC); while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+      ble112.ble_cmd_gap_discover(BGLIB_GAP_DISCOVER_GENERIC); checkActivity();
       scan_timer.reset();
       scan_timer.start();
       while(scan_timer.read()<BLUETOOTH_SCAN_RATE){
