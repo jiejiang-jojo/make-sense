@@ -9,6 +9,7 @@
 #define HTTP_LEN 1024
 #define BUFLEN 266
 #define PACKET_LEN 4
+#define CLOCK_RESYNC_CYCLE 3600
 
 #define PRIVACY_PERIOD 6   // seconds
 #define SAMPLE_RATE 3    // seconds
@@ -17,9 +18,9 @@
 #define GESTURE_SAMPLE_RATE 0.1  //seconds
 
 #define BLUETOOTH_SCAN_RATE 3   //seconds
-#define BLUETOOTH_ACTIVE_PERIOD 10
+#define BLUETOOTH_ACTIVE_PERIOD 3.1
 #define BLUETOOTH_SCAN_REST_PERIOD 0.5
-#define BLUETOOTH_TIMEOUT 1
+#define BLUETOOTH_TIMEOUT 1.5
 #define BLUETOOTH_RSSI_MIN -104
 
 #define PARTICULATE_SAMPLE_SIZE 3 

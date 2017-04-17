@@ -30,6 +30,7 @@ public:
   void CallbackHandler(void *response);
   int GetStatus();
   void Sync();
+  void SyncClock();
   void Setup();
   time_t GetTime();
   void Process();

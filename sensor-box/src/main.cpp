@@ -347,6 +347,8 @@ int main(void){
     thread[2].start(check_gesture);
     thread[3].start(bluetooth_scan_loop);
 
+    Timer t_clock_resync;
+    t_clock_resync.start();
     while(1){
         //process any callbacks coming from esp_link
         wifi.Process();
@@ -358,6 +360,11 @@ int main(void){
         else if(queue_size>0)
             send_data("/box-record");
 
-        Thread::wait(POST_RATE * 1000);
+        if (t_clock_resync.read_ms() < CLOCK_RESYNC_CYCLE * 1000)
+          Thread::wait(POST_RATE * 1000);
+        else{
+          wifi.SyncClock();
+          t_clock_resync.reset();
+        }
     }
 }

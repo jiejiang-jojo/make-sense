@@ -76,14 +76,7 @@ time_t Wifi::GetTime() {
     return cmd.GetTime();
 }
 
-/*set the starting time of data collecction*/
-void Wifi::Setup() {
-
-    Process();
-
-    DBG("Adjusting time...");
-    if (!box_state_.IsWifiOn())
-      Connect();
+void Wifi::SyncClock() {
     //re-get time in case that the timestamp is not valid (e.g., 1970-1-1)
     int currenttime;
     while((currenttime = GetTime()) < 1471651200){
@@ -96,6 +89,17 @@ void Wifi::Setup() {
     time_t seconds = time(NULL);
     char * timestr = ctime(&seconds);
     DBG("current time str: %s\n", timestr);
+}
+
+/*set the starting time of data collecction*/
+void Wifi::Setup() {
+
+    Process();
+
+    DBG("Adjusting time...");
+    if (!box_state_.IsWifiOn())
+      Connect();
+    SyncClock();
 }
 
 void Wifi::Process() {
