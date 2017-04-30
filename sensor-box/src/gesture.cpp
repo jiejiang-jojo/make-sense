@@ -34,6 +34,7 @@ int read_gesture()
 
 int read_light()
 {
+    GSensor.enableLightSensor();
     uint16_t light;
     if(GSensor.readAmbientLight(light)){
       GSensor.enableGestureSensor(true);

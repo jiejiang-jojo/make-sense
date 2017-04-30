@@ -14,7 +14,7 @@ void setup_range()
 
 int read_range()
 {
-        voltage = range.read();
+        voltage = range.read() + 1E-5; //add a very small number to prevent zeros
         cm = (int) 5.99615*pow(voltage, -1.206609f);
         if(cm>150)
             return 150; //out of detecting range.
