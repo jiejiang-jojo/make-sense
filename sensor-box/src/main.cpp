@@ -47,7 +47,7 @@ int gesture_counter = 0;
 float sound_read_sq = 0;
 float sound_read = 0;
 int sound_counter = 0;
-float range_read = 0;
+int range_read = 150;
 int light_read = 0;
 
 // 128bit key
@@ -119,7 +119,7 @@ void read_sensors(int num){
     sound_read_sq = 0;
     sound_counter = 0;
 
-    recordsW.entries[num].range = (int) range_read;
+    recordsW.entries[num].range = range_read;
     range_read = 150;
 
     recordsW.entries[num].bluetooth_0 = (int) read_bluetooth_signal(0);
@@ -302,7 +302,7 @@ void check_gesture(){
 /*Thread for getting sensor data that needs high frequency sampling*/
 void get_highFrequencyData(){
     float temp_sound;
-    float temp_range;
+    int temp_range;
     while(true){
         if(!box_state.IsPrivacyOn()){
             temp_range = read_range();

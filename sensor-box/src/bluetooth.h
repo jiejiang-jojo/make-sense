@@ -14,9 +14,9 @@ public:
   time_t * lastseen;
 
   BluetoothReading(int num, const char * bt_macs[], BGLib bg):  _bg(bg){
-    macs = new bd_addr_t[num];
-    rssi = new int[num];
-    lastseen = new time_t[num];
+    macs = new bd_addr_t[num]();
+    rssi = new int[num]();
+    lastseen = new time_t[num]();
     for (int i=0; i<num; i++){
       str2mac(bt_macs[i], macs[i].addr);
     }
