@@ -24,7 +24,7 @@ float read_sound();
 
 float cal_sound(float value, float value_sq, float counter);
 
-float read_range();
+int read_range();
 
 int read_bluetooth_signal(int device);
 
