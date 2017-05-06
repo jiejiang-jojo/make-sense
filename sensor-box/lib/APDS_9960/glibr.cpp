@@ -5,7 +5,7 @@
 
 
 glibr::glibr(PinName sda, PinName scl):i2c(sda, scl){
-    // i2c.frequency(400000);
+    i2c.frequency(400000);
     gesture_ud_delta_ = 0;
     gesture_lr_delta_ = 0;
     
