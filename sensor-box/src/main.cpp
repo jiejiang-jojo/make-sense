@@ -84,6 +84,8 @@ int read_pointer = 0;
 
 //size of written but not read records
 int queue_size = 0;
+int thread_stop_times = 0;
+int post_failed_times = 0;
 
 //Initialize a client to read and write data from N25Q
 N25Q flash(P0_9, P0_8, P0_7, P0_6);
@@ -268,6 +270,7 @@ void send_data(const char* path){
     uint16_t code = wifi.rest.waitResponse(response, BUFLEN);
     if(code == HTTP_STATUS_OK){
         DBG("POST: successful -> %s\n", response);
+        post_failed_times = 0;
         //only move the read pointer to next page when post is successful
         read_pointer = read_pointer + N25Q::PAGE_SIZE;
         queue_size--;
@@ -276,6 +279,7 @@ void send_data(const char* path){
             read_pointer = 0;
     } else {
         DBG("POST: failed -> %d\n", code);
+        post_failed_times++;
 //            reconnect_wifi(); //when server restarted, sensor box keeps getting post failures
     }
 }
@@ -350,6 +354,10 @@ int main(void){
     Timer t_clock_resync;
     t_clock_resync.start();
     while(1){
+        DBG("queue size:%d stopped:%d failed:%d\n", queue_size,thread_stop_times,post_failed_times);
+        if(thread_stop_times>50||post_failed_times>20){
+            NVIC_SystemReset();
+        }
         //process any callbacks coming from esp_link
         wifi.Process();
         //if wifi is connected and there is data packet in the queue
@@ -357,8 +365,14 @@ int main(void){
           DBG("no wifi on!");
           wifi.Sync();
         }
-        else if(queue_size>0)
-            send_data("/box-record");
+        else {
+          if(queue_size>0){
+              send_data("/box-record");
+              thread_stop_times = 0;
+          }
+          else if(!box_state.IsPrivacyOn())
+              thread_stop_times++;
+        }
 
         if (t_clock_resync.read_ms() < CLOCK_RESYNC_CYCLE * 1000)
           Thread::wait(POST_RATE * 1000);
