@@ -18,4 +18,6 @@ void print_mac(const uint8 * mac);
 
 void phex(uint8_t* str);
 
+int average_array(int nums[10]);
+
 #endif

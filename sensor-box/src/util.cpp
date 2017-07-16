@@ -14,7 +14,7 @@ int char2int(char input)
   return -1;
 }
 
-// This function assumes src an array of 12 characters of 
+// This function assumes src an array of 12 characters of
 // [0-9a-fA-F] and target to be of length 6 bytes.
 void str2mac(const char * src, uint8 * target)
 {
@@ -35,4 +35,10 @@ void phex(uint8_t* str) {
     DBG("\n");
 }
 
-
+int average_array(int nums[40]){
+  int sum = 0;
+  for(int i=0; i<40; i++){
+    sum+=nums[i];
+  }
+  return sum/40;
+}

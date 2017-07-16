@@ -30,6 +30,10 @@ char device_id_str[20] = {0};
 //LED lights
 LED led(P2_5, P2_4, P2_3);
 
+//unused
+DigitalOut vibr(P2_12);
+DigitalOut unused(P0_26);
+
 BoxState box_state(led);
 
 Wifi wifi(P4_28, P4_29, box_state);
@@ -306,16 +310,22 @@ void check_gesture(){
 /*Thread for getting sensor data that needs high frequency sampling*/
 void get_highFrequencyData(){
     float temp_sound;
-    int temp_range;
+    int temp_range = 150;
+    //sample range readings and get the average to reduce noise
+    int buf_range[40] = {150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150};
+    int range_counter = 0;
     while(true){
         if(!box_state.IsPrivacyOn()){
-            temp_range = read_range();
             temp_sound = read_sound();
             sound_counter++;
             sound_read += temp_sound;
             sound_read_sq += temp_sound*temp_sound;
-            if(range_read>temp_range)
-                range_read = temp_range;
+            buf_range[range_counter] = read_range();
+            range_counter = (range_counter+1)%40;
+            temp_range = average_array(buf_range);
+            if(range_read>temp_range){
+              range_read = temp_range;
+            }
         }
         Thread::wait(HIGHFREQ_SAMPLE_RATE * 1000);
     }
@@ -332,6 +342,8 @@ void get_serial_number(){
 
 int main(void){
 
+    vibr = 0;
+    unused = 0;
     serial.baud(DBG_SERIAL_BAUD);
     DBG("Started!");
 
@@ -355,7 +367,11 @@ int main(void){
     t_clock_resync.start();
     while(1){
         DBG("queue size:%d stopped:%d failed:%d\n", queue_size,thread_stop_times,post_failed_times);
-        if(thread_stop_times>50||post_failed_times>20){
+        /*if getting data thread stopped for 20 rounds or
+        posting data thread has 20 consecutive failed data posting,
+        restart the board.
+        */
+        if(thread_stop_times>20||post_failed_times>20){
             NVIC_SystemReset();
         }
         //process any callbacks coming from esp_link

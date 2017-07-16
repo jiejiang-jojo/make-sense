@@ -395,4 +395,3 @@ void
 N25Q::SlaveDeSelect(void) {
 	m_SSEL->write(1);
 }
-
