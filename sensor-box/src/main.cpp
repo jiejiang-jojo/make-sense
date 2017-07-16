@@ -268,7 +268,7 @@ void send_data(const char* path){
 
     static char response[BUFLEN];
     memset(response, 0, BUFLEN);
-    DBG("Post len: %d\n", strlen(http_body));
+    DBG("Post len=%d ID=%d REMOTE=%s\n", strlen(http_body), BOX_ID, SERVER_IP);
     wifi.rest.post(path, http_body);
     //get post response from the server
     uint16_t code = wifi.rest.waitResponse(response, BUFLEN);

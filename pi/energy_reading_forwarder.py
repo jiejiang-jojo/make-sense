@@ -80,6 +80,8 @@ def main():
                 for line in serial_port:
                     try:
                         rec = parse_record(line, {'household': household})
+                        if rec['watts'] is None:
+                            continue
                         logger.info(json.dumps(rec))
                     except Exception:  # pylint: disable-msg=broad-except
                         traceback.print_exc(file=sys.stdout)
