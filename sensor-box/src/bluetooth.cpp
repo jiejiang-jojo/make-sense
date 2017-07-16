@@ -156,27 +156,27 @@ void bluetooth_scan_loop() {
 
     for(int i=0; i<BLUETOOTH_NUM; i++) {
       // append a mac adress to the whitelist
-      ble112.ble_cmd_system_whitelist_append(bt_reading.macs[i],0);
+      while(ble112.ble_cmd_system_whitelist_append(bt_reading.macs[i],0));
       checkActivity();
     }
 
     // set scan policy for only scan devices in the whitelist
-    ble112.ble_cmd_gap_set_filtering(BGLIB_GAP_SCAN_POLICY_WHITELIST,BGLIB_GAP_ADV_POLICY_ALL,1); checkActivity();
+    while(ble112.ble_cmd_gap_set_filtering(BGLIB_GAP_SCAN_POLICY_WHITELIST,BGLIB_GAP_ADV_POLICY_ALL,1)); checkActivity();
     // set scan interval and window
-    ble112.ble_cmd_gap_set_scan_parameters(0xC0, 0xC0, 0); checkActivity();
+    while(ble112.ble_cmd_gap_set_scan_parameters(0x32, 0x32, 0)); checkActivity();
 
     Timer scan_timer;
     while(1){
       time_t seconds = time(NULL);
       // DBG("scanning... %ld\n\r", seconds);
-      ble112.ble_cmd_gap_discover(BGLIB_GAP_DISCOVER_GENERIC); checkActivity();
+      while(ble112.ble_cmd_gap_discover(BGLIB_GAP_DISCOVER_GENERIC)); checkActivity();
       scan_timer.reset();
       scan_timer.start();
       while(scan_timer.read()<BLUETOOTH_SCAN_RATE){
         ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000);
         Thread::wait(BLUETOOTH_SCAN_REST_PERIOD * 1000);
       }
-      ble112.ble_cmd_gap_end_procedure(); while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+      while(ble112.ble_cmd_gap_end_procedure()); while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
     }
     DBG("Unexpected BLE loop termination");
 }
