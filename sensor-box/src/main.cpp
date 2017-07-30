@@ -128,6 +128,8 @@ void read_sensors(int num){
     recordsW.entries[num].range = range_read;
     range_read = 150;
 
+    bluetooth_scan_loop();
+
     recordsW.entries[num].bluetooth_0 = (int) read_bluetooth_signal(0);
     recordsW.entries[num].bluetooth_1 = (int) read_bluetooth_signal(1);
     recordsW.entries[num].bluetooth_2 = (int) read_bluetooth_signal(2);
@@ -198,7 +200,7 @@ void get_allData(){
         }
 
 
-        Thread::wait(SAMPLE_RATE * 1000);
+        Thread::wait((SAMPLE_RATE-BLUETOOTH_SCAN_RATE) * 1000);
     }
 }
 
@@ -357,11 +359,13 @@ int main(void){
     //time setup is after wifi setup (sntp)
     wifi.Setup();
 
+    bleinit();
+
     Thread thread[4];
     thread[0].start(get_allData);
     thread[1].start(get_highFrequencyData);
-    thread[2].start(check_gesture);
-    thread[3].start(bluetooth_scan_loop);
+    // thread[2].start(check_gesture);
+    // thread[3].start(bluetooth_scan_loop);
 
     Timer t_clock_resync;
     t_clock_resync.start();

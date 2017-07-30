@@ -16,6 +16,7 @@ extern Serial serial;
 BufferedSoftSerial eggble(P0_0, P0_1); // tx, rx for Bluetooth
 BGLib ble112((BufferedSoftSerial *)&eggble, &serial, 1);
 
+Timer scan_timer;
 
 // ##### Configuration of bands
 const char * bluetooth_macs[] = {
@@ -118,6 +119,10 @@ void my_rsp_system_hello(const ble_msg_system_hello_rsp_t *msg) {
     // DBG("<--\tsystem_hello\r\n");
 }
 
+void checkActivity(){
+    while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
+}
+
 void bleinit(){
     // set up internal status handlers (these are technically optional)
     #ifdef _BLE_RESET_
@@ -141,15 +146,6 @@ void bleinit(){
     Thread::wait(50);
     RES_PIN=1;
     #endif
-}
-
-void checkActivity(){
-    while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
-}
-
-void bluetooth_scan_loop() {
-    DBG("BLE scan loop starting...\n");
-    bleinit();
 
     // clear whitelist
     ble112.ble_cmd_system_whitelist_clear();checkActivity();
@@ -165,8 +161,13 @@ void bluetooth_scan_loop() {
     // set scan interval and window
     while(ble112.ble_cmd_gap_set_scan_parameters(0x32, 0x32, 0)); checkActivity();
 
-    Timer scan_timer;
-    while(1){
+}
+
+void bluetooth_scan_loop() {
+    DBG("BLE scan loop starting...\n");
+    // bleinit();
+
+    // while(1){
       time_t seconds = time(NULL);
       // DBG("scanning... %ld\n\r", seconds);
       while(ble112.ble_cmd_gap_discover(BGLIB_GAP_DISCOVER_GENERIC)); checkActivity();
@@ -174,9 +175,9 @@ void bluetooth_scan_loop() {
       scan_timer.start();
       while(scan_timer.read()<BLUETOOTH_SCAN_RATE){
         ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000);
-        Thread::wait(BLUETOOTH_SCAN_REST_PERIOD * 1000);
+        // Thread::wait(BLUETOOTH_SCAN_REST_PERIOD * 1000);
       }
       while(ble112.ble_cmd_gap_end_procedure()); while (ble112.checkActivity(BLUETOOTH_TIMEOUT * 1000));
-    }
-    DBG("Unexpected BLE loop termination");
+    // }
+    // DBG("Unexpected BLE loop termination");
 }

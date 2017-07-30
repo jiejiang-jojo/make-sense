@@ -30,5 +30,6 @@ int read_bluetooth_signal(int device);
 
 void bluetooth_scan_loop();
 
+void bleinit();
 
 #endif
