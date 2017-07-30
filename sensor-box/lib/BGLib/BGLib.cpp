@@ -508,9 +508,9 @@ void BGLib::reset_rxbuf(){
 }
 
 uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
-    #ifdef _DEBUG_
+    #ifdef _BLE_DEBUG_
         // DEBUG: output hex value of incoming character
-        uOutput->printf("%02X", ch);              // actual hex value
+        // uOutput->printf("%02X", ch);              // actual hex value
     #endif
 
     if (bgapiRXBufferPos == bgapiRXBufferSize) {
@@ -538,7 +538,7 @@ uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
             // store new character in RX buffer
             bgapiRXBuffer[bgapiRXBufferPos++] = ch;
         } else {
-            #ifdef _DEBUG_
+            #ifdef _BLE_DEBUG_
                 uOutput->printf("*** Packet frame sync error! Expected .0000... binary, got %02X \r\n", ch);
             #endif
             return 1; // packet format error
@@ -552,12 +552,12 @@ uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
             // if (bgapiRXBuffer[0] == 0x80 && bgapiRXBuffer[1] == 0x2A)
             //     bgapiRXDataLen = 12;
 
-            #ifdef _DEBUG_
+            #ifdef _BLE_DEBUG_
                 uOutput->printf("$[%d]$", bgapiRXDataLen);
             #endif
         } else if (bgapiRXBufferPos == bgapiRXDataLen + 4) {
             // just received last expected byte
-            #ifdef _DEBUG_
+            #ifdef _BLE_DEBUG_
                 uOutput->printf("\n<=[ ");
                 for (uint8_t i = 0; i < bgapiRXBufferPos; i++) {
                     uOutput->printf("%02X",bgapiRXBuffer[i]);
@@ -1038,6 +1038,9 @@ uint8_t BGLib::parse(uint8_t ch, uint8_t packetMode) {
 }
 
 uint8_t BGLib::sendCommand(uint16_t len, uint8_t commandClass, uint8_t commandId, void *payload) {
+    #ifdef _BLE_DEBUG_
+        uOutput->printf("\ncommandId: %d\n", commandId);
+    #endif
     bgapiTXBuffer = (uint8_t *)malloc(len + 4);
     bgapiTXBuffer[0] = 0x00;
     bgapiTXBuffer[1] = (len & 0xFF);
@@ -1046,7 +1049,7 @@ uint8_t BGLib::sendCommand(uint16_t len, uint8_t commandClass, uint8_t commandId
     lastCommand[0] = commandClass;
     lastCommand[1] = commandId;
     if (len > 0) memcpy(bgapiTXBuffer + 4, payload, len);
-    #ifdef DEBUG
+    #ifdef _DEBUG_VERBOSE_
         uOutput->printf("\n=>[ ");
         if (packetMode) {
             if (len + 4 < 16) uOutput->putc(0x30);

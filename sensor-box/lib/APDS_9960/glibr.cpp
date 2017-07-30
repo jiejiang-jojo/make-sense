@@ -8,30 +8,30 @@ glibr::glibr(PinName sda, PinName scl):i2c(sda, scl){
     i2c.frequency(400000);
     gesture_ud_delta_ = 0;
     gesture_lr_delta_ = 0;
-    
+
     gesture_ud_count_ = 0;
     gesture_lr_count_ = 0;
-    
+
     gesture_near_count_ = 0;
     gesture_far_count_ = 0;
-    
+
     gesture_state_ = 0;
     gesture_motion_ = DIR_NONE;
-}    
-   
+}
+
 glibr::~glibr(){
-       
-} 
+
+}
 
  bool  glibr::ginit(){
     uint8_t id;
-        
+
      id=I2CreadByte(APDS9960_I2C_ADDR, APDS9960_ID);
-    
+
     if( (!(id == APDS9960_ID_1 || id == APDS9960_ID_2))||id==ERROR) {
          return false;
     }
-    
+
     if(!setMode(ALL, Off)) {
         return false;
     }
@@ -53,11 +53,11 @@ glibr::~glibr(){
     if(I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONFIG1, DEFAULT_CONFIG1)){
         return false;
     }
-    
+
     if( !setLEDDrive(DEFAULT_LDRIVE) ) {
         return false;
     }
-    
+
     if( !setProximityGain(DEFAULT_PGAIN) ) {
         return false;
     }
@@ -79,7 +79,7 @@ glibr::~glibr(){
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONFIG3, DEFAULT_CONFIG3) ) {
         return false;
     }
-    
+
     if( !setGestureEnterThresh(DEFAULT_GPENTH) ) {
         return false;
     }
@@ -119,16 +119,16 @@ glibr::~glibr(){
     if( !setGestureIntEnable(DEFAULT_GIEN) ) {
         return false;
     }
-    
+
     return true;
-    
+
 }
 
 //#if 0
 //    /* Gesture config register dump */
 //    uint8_t reg;
 //    uint8_t val;
-//  
+//
 //    for(reg = 0x80; reg <= 0xAF; reg++) {
 //        if( (reg != 0x82) && \
 //            (reg != 0x8A) && \
@@ -154,10 +154,10 @@ glibr::~glibr(){
 //        Serial.print(": 0x");
 //        Serial.println(val, HEX);*/
 //    }
-//#endif 
+//#endif
 
   //  return true;
- 
+
 
 
 
@@ -177,7 +177,7 @@ bool glibr::setMode(uint8_t mode, uint8_t enable)
     if( reg_val == ERROR ) {
         return false;
     }
-    
+
     /* Change bit(s) in ENABLE register */
     enable = enable & 0x01;
     if( mode >= 0 && mode <= 6 ) {
@@ -193,14 +193,14 @@ bool glibr::setMode(uint8_t mode, uint8_t enable)
             reg_val = 0x00;
         }
     }
-    
-    /* Write value back to ENABLE register */     
+
+    /* Write value back to ENABLE register */
     if(I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_ENABLE, reg_val)){
         return false;
     }
-   
 
-        
+
+
     return true;
 }
 
@@ -218,7 +218,7 @@ uint8_t glibr::getMode()
 
 bool glibr::enableLightSensor(bool interrupts)
 {
-    
+
     /* Set default gain, interrupts, enable power, and enable sensor */
     if( !setAmbientLightGain(DEFAULT_AGAIN) ) {
         return false;
@@ -238,7 +238,7 @@ bool glibr::enableLightSensor(bool interrupts)
     if( !setMode(AMBIENT_LIGHT, 1) ) {
         return false;
     }
-    
+
     return true;
 
 }
@@ -256,7 +256,7 @@ bool glibr::disableLightSensor()
     if( !setMode(AMBIENT_LIGHT, 0) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -290,7 +290,7 @@ bool glibr::enableProximitySensor(bool interrupts)
     if( !setMode(PROXIMITY, 1) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -320,12 +320,12 @@ bool glibr::disableProximitySensor()
  */
 bool glibr::enableGestureSensor(bool interrupts)
 {
-    
+
     /* Enable gesture mode
        Set ENABLE to 0 (power off)
        Set WTIME to 0xFF
        Set AUX to LED_BOOST_300
-       Enable PON, WEN, PEN, GEN in ENABLE 
+       Enable PON, WEN, PEN, GEN in ENABLE
     */
 
     resetGestureParameters();
@@ -362,7 +362,7 @@ bool glibr::enableGestureSensor(bool interrupts)
     if( !setMode(GESTURE, 1) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -383,7 +383,7 @@ bool glibr::disableGestureSensor()
     if( !setMode(GESTURE, 0) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -396,16 +396,16 @@ bool glibr::disableGestureSensor()
 bool glibr::isGestureAvailable()
 {
     uint8_t val;
-    
+
     /* Read value from GSTATUS register */
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_GSTATUS);
     if( val==ERROR) {
         return ERROR;
     }
-    
+
     /* Shift and mask out GVALID bit */
     val &= APDS9960_GVALID;
-    
+
     /* Return true/false based on GVALID bit */
     if( val == 1) {
         return true;
@@ -432,35 +432,35 @@ int glibr::readGesture()
     char fifo_data[128];
     char *fptr;
     fptr= fifo_data;
-    
+
     uint8_t gstatus;
     int motion = 0;
     int i;
-    
+
     Timer tmr;
-    
+
     /* Make sure that power and gesture is on and data is valid */
     if( !isGestureAvailable() || !(getMode() & 0x41) ) {
         return DIR_NONE;
     }
-    
+
     tmr.start();
-    
+
     /* Keep looping as long as gesture data is valid */
     while(tmr.read_ms()<50) {
-      
+
         /* Wait some time to collect next batch of FIFO data */
        wait_us(FIFO_PAUSE_TIME);
-        
+
         /* Get the contents of the STATUS register. Is data still valid? */
-          
+
         gstatus=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_GSTATUS);
         if( gstatus==ERROR ) {
             return ERROR;
         }
         /* If we have valid data, read in FIFO */
         if( (gstatus & APDS9960_GVALID) == APDS9960_GVALID ) {
-        
+
             /* Read the current FIFO level */
             fifo_level=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_GFLVL);
             if( fifo_level==ERROR ) {
@@ -468,16 +468,16 @@ int glibr::readGesture()
             }
 
             /* If there's stuff in the FIFO, read it into our data block */                 //NEED TO FIGURE OUT WHAT THIS IS DOING.
-        
+
             if( fifo_level > 0) {
-                check = I2CReadDataBlock(APDS9960_I2C_ADDR,APDS9960_GFIFO_U, 
-                                                fptr, 
+                check = I2CReadDataBlock(APDS9960_I2C_ADDR,APDS9960_GFIFO_U,
+                                                fptr,
                                                 (fifo_level * 4) );
-                
+
                 if( check == -1 ) {
                     return ERROR;
                 }
-                
+
             }
 
             /* If at least 1 set of data, sort the data into U/D/L/R */
@@ -493,12 +493,12 @@ int glibr::readGesture()
                                                             fifo_data[i + 3];
                     gesture_data_.sindex++;
                     gesture_data_.total_gestures++;
-                }                
+                }
             }
         }
         else {
             break;
-        } 
+        }
     }
     processGestureData();
     decodeGesture();
@@ -516,7 +516,7 @@ bool glibr::enablePower()
     if( !setMode(Power, 1) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -530,7 +530,7 @@ bool glibr::disablePower()
     if( !setMode(Power, 0) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -548,16 +548,16 @@ bool glibr::readAmbientLight(uint16_t &val)
 {
     uint8_t val_byte;
     val = 0;
-    
+
     /* Read value from clear channel, low byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CDATAL);
     if( val_byte==ERROR) {
         return false;
     }
     val = val_byte;
-    
+
     /* Read value from clear channel, high byte register */
-   
+
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CDATAH);
     if( val_byte==ERROR) {
         return false;
@@ -576,22 +576,22 @@ bool glibr::readRedLight(uint16_t &val)
 {
     uint8_t val_byte;
     val = 0;
-    
+
     /* Read value from clear channel, low byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_RDATAL);
     if( val_byte==ERROR) {
         return false;
     }
-    
+
     val = val_byte;
-    
+
     /* Read value from clear channel, high byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_RDATAH);
     if( val_byte==ERROR) {
         return false;
     }
     val = val + ((uint16_t)val_byte << 8);
-    
+
     return true;
 }
 
@@ -606,22 +606,22 @@ bool glibr::readGreenLight(uint16_t &val)
 {
     uint8_t val_byte;
     val = 0;
-    
+
     /* Read value from clear channel, low byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_GDATAL);
     if( val_byte==ERROR) {
         return false;
     }
-    
+
     val = val_byte;
-    
+
     /* Read value from clear channel, high byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_GDATAH);
     if( val_byte==ERROR) {
         return false;
     }
     val = val + ((uint16_t)val_byte << 8);
-    
+
     return true;
 }
 
@@ -636,22 +636,22 @@ bool glibr::readBlueLight(uint16_t &val)
 {
     uint8_t val_byte;
     val = 0;
-    
+
     /* Read value from clear channel, low byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_BDATAL);
     if( val_byte==ERROR) {
         return false;
     }
-    
+
     val = val_byte;
-    
+
     /* Read value from clear channel, high byte register */
     val_byte=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_BDATAH);
     if( val_byte==ERROR) {
         return false;
     }
     val = val + ((uint16_t)val_byte << 8);
-    
+
     return true;
 }
 
@@ -668,14 +668,14 @@ bool glibr::readBlueLight(uint16_t &val)
 bool glibr::readProximity(uint8_t &val)
 {
     val = 0;
-    
+
     /* Read value from proximity data register */
      val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_PDATA);
-    
+
     if(val==ERROR){
-        return false;   
+        return false;
     }
-    
+
     return true;
 }
 
@@ -690,16 +690,16 @@ void glibr::resetGestureParameters()
 {
     gesture_data_.sindex = 0;
     gesture_data_.total_gestures = 0;
-    
+
     gesture_ud_delta_ = 0;
     gesture_lr_delta_ = 0;
-    
+
     gesture_ud_count_ = 0;
     gesture_lr_count_ = 0;
-    
+
     gesture_near_count_ = 0;
     gesture_far_count_ = 0;
-    
+
     gesture_state_ = 0;
     gesture_motion_ = DIR_NONE;
 }
@@ -726,18 +726,18 @@ bool glibr::processGestureData()
     if( gesture_data_.total_gestures <= 4 ) {
         return false;
     }
-    
+
     /* Check to make sure our data isn't out of bounds */
     if( (gesture_data_.total_gestures <= 32) && \
         (gesture_data_.total_gestures > 0) ) {
-        
+
         /* Find the first value in U/D/L/R above the threshold */
         for( i = 0; i < gesture_data_.total_gestures; i++ ) {
             if( (gesture_data_.u_data[i] > GESTURE_THRESHOLD_OUT) &&
                 (gesture_data_.d_data[i] > GESTURE_THRESHOLD_OUT) &&
                 (gesture_data_.l_data[i] > GESTURE_THRESHOLD_OUT) &&
                 (gesture_data_.r_data[i] > GESTURE_THRESHOLD_OUT) ) {
-                
+
                 u_first = gesture_data_.u_data[i];
                 d_first = gesture_data_.d_data[i];
                 l_first = gesture_data_.l_data[i];
@@ -745,11 +745,11 @@ bool glibr::processGestureData()
                 break;
             }
         }
-        
+
         /* If one of the _first values is 0, then there is no good data */
         if( (u_first == 0) || (d_first == 0) || \
             (l_first == 0) || (r_first == 0) ) {
-            
+
             return false;
         }
         /* Find the last value in U/D/L/R above the threshold */
@@ -758,7 +758,7 @@ bool glibr::processGestureData()
                 (gesture_data_.d_data[i] > GESTURE_THRESHOLD_OUT) &&
                 (gesture_data_.l_data[i] > GESTURE_THRESHOLD_OUT) &&
                 (gesture_data_.r_data[i] > GESTURE_THRESHOLD_OUT) ) {
-                
+
                 u_last = gesture_data_.u_data[i];
                 d_last = gesture_data_.d_data[i];
                 l_last = gesture_data_.l_data[i];
@@ -767,14 +767,14 @@ bool glibr::processGestureData()
             }
         }
     }
-    
+
     /* Calculate the first vs. last ratio of up/down and left/right */
     ud_ratio_first = ((u_first - d_first) * 100) / (u_first + d_first);
     lr_ratio_first = ((l_first - r_first) * 100) / (l_first + r_first);
     ud_ratio_last = ((u_last - d_last) * 100) / (u_last + d_last);
     lr_ratio_last = ((l_last - r_last) * 100) / (l_last + r_last);
-       
-/* #if DEBUG
+
+/* #if _DEBUG_
     Serial.print(F("Last Values: "));
     Serial.print(F("U:"));
     Serial.print(u_last);
@@ -795,12 +795,12 @@ bool glibr::processGestureData()
     Serial.print(F(" LR La: "));
     Serial.println(lr_ratio_last);
 #endif */
-       
+
     /* Determine the difference between the first and last ratios */
     ud_delta = ud_ratio_last - ud_ratio_first;
     lr_delta = lr_ratio_last - lr_ratio_first;
-    
-/* #if DEBUG
+
+/* #if _DEBUG_
     Serial.print("Deltas: ");
     Serial.print("UD: ");
     Serial.print(ud_delta);
@@ -811,15 +811,15 @@ bool glibr::processGestureData()
     /* Accumulate the UD and LR delta values */
     gesture_ud_delta_ += ud_delta;
     gesture_lr_delta_ += lr_delta;
-    
-/* #if DEBUG
+
+/* #if _DEBUG_
     Serial.print("Accumulations: ");
     Serial.print("UD: ");
     Serial.print(gesture_ud_delta_);
     Serial.print(" LR: ");
     Serial.println(gesture_lr_delta_);
 #endif */
-    
+
     /* Determine U/D gesture */
     if( gesture_ud_delta_ >= GESTURE_SENSITIVITY_1 ) {
         gesture_ud_count_ = 1;
@@ -828,7 +828,7 @@ bool glibr::processGestureData()
     } else {
         gesture_ud_count_ = 0;
     }
-    
+
     /* Determine L/R gesture */
     if( gesture_lr_delta_ >= GESTURE_SENSITIVITY_1 ) {
         gesture_lr_count_ = 1;
@@ -837,18 +837,18 @@ bool glibr::processGestureData()
     } else {
         gesture_lr_count_ = 0;
     }
-    
+
     /* Determine Near/Far gesture */
     if( (gesture_ud_count_ == 0) && (gesture_lr_count_ == 0) ) {
         if( (abs(ud_delta) < GESTURE_SENSITIVITY_2) && \
             (abs(lr_delta) < GESTURE_SENSITIVITY_2) ) {
-            
+
             if( (ud_delta == 0) && (lr_delta == 0) ) {
                 gesture_near_count_++;
             } else if( (ud_delta != 0) || (lr_delta != 0) ) {
                 gesture_far_count_++;
             }
-            
+
             if( (gesture_near_count_ >= 10) && (gesture_far_count_ >= 2) ) {
                 if( (ud_delta == 0) && (lr_delta == 0) ) {
                     gesture_state_ = NEAR_STATE;
@@ -861,11 +861,11 @@ bool glibr::processGestureData()
     } else {
         if( (abs(ud_delta) < GESTURE_SENSITIVITY_2) && \
             (abs(lr_delta) < GESTURE_SENSITIVITY_2) ) {
-                
+
             if( (ud_delta == 0) && (lr_delta == 0) ) {
                 gesture_near_count_++;
             }
-            
+
             if( gesture_near_count_ >= 5 ) {
                 gesture_ud_count_ = 0;
                 gesture_lr_count_ = 0;
@@ -874,15 +874,15 @@ bool glibr::processGestureData()
             }
         }
     }
-    
-// #if DEBUG
+
+// #if _DEBUG_
   /*    printf("UD_CT: %d\n",gesture_ud_count_);
       printf("LR_CT: %d\n",gesture_lr_count_);
       printf("NEAR_CT: %d\n",gesture_near_count_);
       printf(" FAR_CT: %d\n",gesture_far_count_);
       printf("----------"); */
 //#endif */
-    
+
     return false;
 }
 
@@ -901,7 +901,7 @@ bool glibr::decodeGesture()
         gesture_motion_ = DIR_FAR;
         return true;
     }
-    
+
     /* Determine swipe direction */
     if( (gesture_ud_count_ == -1) && (gesture_lr_count_ == 0) ) {
         gesture_motion_ = DIR_UP;
@@ -938,7 +938,7 @@ bool glibr::decodeGesture()
     } else {
         return false;
     }
-    
+
     return true;
 }
 
@@ -951,23 +951,23 @@ bool glibr::decodeGesture()
  *
  * @return lower threshold
  */
- 
+
  uint8_t glibr::getProxIntLowThresh()
 {
     uint8_t val;
-    
+
     /* Read value from PILT register */
    /* if( !wireReadDataByte(APDS9960_PILT, val) ) {
         val = 0;
     }*/
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_PILT);
     if(val==ERROR){
-        val=0;   
+        val=0;
     }
-    
+
     return val;
 }
- 
+
  /**
  * @brief Sets the lower threshold for proximity detection
  *
@@ -979,7 +979,7 @@ bool glibr::decodeGesture()
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_PILT, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -991,13 +991,13 @@ bool glibr::decodeGesture()
 uint8_t glibr::getProxIntHighThresh()
 {
     uint8_t val;
-    
+
     /* Read value from PIHT register */
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_PILT);
     if( val==ERROR ) {
         val = 0;
     }
-    
+
     return val;
 }
 
@@ -1009,11 +1009,11 @@ uint8_t glibr::getProxIntHighThresh()
  */
 bool glibr::setProxIntHighThresh(uint8_t threshold)
 {
-   
+
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_PIHT, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1031,19 +1031,19 @@ bool glibr::setProxIntHighThresh(uint8_t threshold)
 uint8_t glibr::getLEDDrive()
 {
     uint8_t val;
-    
+
     /* Read value from CONTROL register */
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CONTROL);
     if(  val == ERROR ){//!wireReadDataByte(APDS9960_CONTROL, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out LED drive bits */
     val = (val >> 6) & 0x03;//0b00000011;
-    
+
     return val;
 }
- 
+
  /**
  * @brief Sets the LED drive strength for proximity and ALS
  *
@@ -1056,15 +1056,15 @@ uint8_t glibr::getLEDDrive()
  * @param[in] drive the value (0-3) for the LED drive strength
  * @return True if operation successful. False otherwise.
  */
- 
+
 bool glibr::setLEDDrive(uint8_t drive)
 {
     uint8_t val;
-    
+
     /* Read value from CONTROL register */
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CONTROL);
     if(val==ERROR){
-        return false;   
+        return false;
     }
     /* Set bits in register to given value */
     //drive &= 0b00000011
@@ -1073,12 +1073,12 @@ bool glibr::setLEDDrive(uint8_t drive)
     //val &= 0b00111111;
     val &= 0x3F;
     val |= drive;
-    
+
     /* Write register value back into CONTROL register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONTROL, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1096,16 +1096,16 @@ bool glibr::setLEDDrive(uint8_t drive)
 uint8_t glibr::getProximityGain()
 {
     uint8_t val;
-    
+
     /* Read value from CONTROL register */
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CONTROL);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONTROL, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out PDRIVE bits */
     val = (val >> 2) & 0x03;//0b00000011;
-    
+
     return val;
 }
 
@@ -1124,13 +1124,13 @@ uint8_t glibr::getProximityGain()
 bool glibr::setProximityGain(uint8_t drive)
 {
     uint8_t val;
-    
+
     /* Read value from CONTROL register */
-   
+
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CONTROL);
-    
+
     if(val==ERROR){
-        return false;   
+        return false;
     }
     /* Set bits in register to given value */
     //drive &= 0b00000011;
@@ -1139,7 +1139,7 @@ bool glibr::setProximityGain(uint8_t drive)
     //val &= 0b11110011
     val &= 0xF3;
     val |= drive;
-    
+
     /* Write register value back into CONTROL register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONTROL, val) ) {
         return false;
@@ -1161,16 +1161,16 @@ bool glibr::setProximityGain(uint8_t drive)
 uint8_t glibr::getAmbientLightGain()
 {
     uint8_t val;
-    
+
     /* Read value from CONTROL register */
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CONTROL);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONTROL, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out ADRIVE bits */
     val &= 0x03;//0b00000011;
-    
+
     return val;
 }
 
@@ -1189,13 +1189,13 @@ uint8_t glibr::getAmbientLightGain()
 bool glibr::setAmbientLightGain(uint8_t drive){
 
     uint8_t val;
-    
+
     /* Read value from CONTROL register */
-   
+
     val=I2CreadByte(APDS9960_I2C_ADDR,APDS9960_CONTROL);
-    
+
     if(val==ERROR){
-        return false;   
+        return false;
     }
     /* Set bits in register to given value */
     //drive &= 0b00000011;
@@ -1204,7 +1204,7 @@ bool glibr::setAmbientLightGain(uint8_t drive){
     //val &=0b11111100
     val &= 0xF3;
     val |= drive;
-    
+
     /* Write register value back into CONTROL register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONTROL, val) ) {
         return false;
@@ -1214,7 +1214,7 @@ bool glibr::setAmbientLightGain(uint8_t drive){
 
 /**
  * @brief Get the current LED boost value
- * 
+ *
  * Value  Boost Current
  *   0        100%
  *   1        150%
@@ -1225,16 +1225,16 @@ bool glibr::setAmbientLightGain(uint8_t drive){
  */
 uint8_t glibr::getLEDBoost() {
     uint8_t val;
-    
+
     /* Read value from CONFIG2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONFIG2, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out LED_BOOST bits */
     val = (val >> 4) & 0x03;//0b00000011;
-    
+
     return val;
 }
 
@@ -1253,27 +1253,27 @@ uint8_t glibr::getLEDBoost() {
 bool glibr::setLEDBoost(uint8_t boost)
 {
     uint8_t val;
-    
+
     /* Read value from CONFIG2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONFIG2, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     boost &= 0x03;//0b00000011;
     boost = boost << 4;
     val &= 0xCF;//0b11001111;
     val |= boost;
-    
+
     /* Write register value back into CONFIG2 register */
-    
+
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONFIG2, val)){//!wireWriteDataByte(APDS9960_CONFIG2, val) ) {
         return false;
     }
-    
+
     return true;
-}    
+}
 
 /**
  * @brief Gets proximity gain compensation enable
@@ -1283,16 +1283,16 @@ bool glibr::setLEDBoost(uint8_t boost)
 uint8_t glibr::getProxGainCompEnable()
 {
     uint8_t val;
-    
+
     /* Read value from CONFIG3 register */
-    val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG3); 
+    val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG3);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONFIG3, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out PCMP bits */
     val = (val >> 5) & 0x01;//0b00000001;
-    
+
     return val;
 }
 
@@ -1305,25 +1305,25 @@ uint8_t glibr::getProxGainCompEnable()
  bool glibr::setProxGainCompEnable(uint8_t enable)
 {
     uint8_t val;
-    
+
     /* Read value from CONFIG3 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG3);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONFIG3, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     enable &= 0x01;//0b00000001;
     enable = enable << 5;
     val &= 0xCF;//0b11011111;
     val |= enable;
-    
+
     /* Write register value back into CONFIG3 register */
-    
+
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_CONFIG3, val)){//!wireWriteDataByte(APDS9960_CONFIG3, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1342,16 +1342,16 @@ uint8_t glibr::getProxGainCompEnable()
 uint8_t glibr::getProxPhotoMask()
 {
     uint8_t val;
-    
+
     /* Read value from CONFIG3 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG3);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONFIG3, val) ) {
         return ERROR;
     }
-    
+
     /* Mask out photodiode enable mask bits */
     val &= 0x0F;//0b00001111;
-    
+
     return val;
 }
 
@@ -1371,24 +1371,24 @@ uint8_t glibr::getProxPhotoMask()
 bool glibr::setProxPhotoMask(uint8_t mask)
 {
     uint8_t val;
-    
+
     /* Read value from CONFIG3 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_CONFIG3);
     if( val == ERROR){//!wireReadDataByte(APDS9960_CONFIG3, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     mask &= 0x0F;//0b00001111;
     val &= 0xF0;//0b11110000;
     val |= mask;
-    
+
     /* Write register value back into CONFIG3 register */
     I2CwriteByte(APDS9960_I2C_ADDR, APDS9960_CONFIG3, val);
     if( val == ERROR){//!wireWriteDataByte(APDS9960_CONFIG3, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1400,13 +1400,13 @@ bool glibr::setProxPhotoMask(uint8_t mask)
 uint8_t glibr::getGestureEnterThresh()
 {
     uint8_t val;
-    
+
     /* Read value from GPENTH register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GPENTH);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GPENTH, val) ) {
         val = 0;
     }
-    
+
     return val;
 }
 
@@ -1418,11 +1418,11 @@ uint8_t glibr::getGestureEnterThresh()
  */
 bool glibr::setGestureEnterThresh(uint8_t threshold)
 {
-    
+
     if( I2CwriteByte(APDS9960_I2C_ADDR, APDS9960_GPENTH, threshold)){;//!wireWriteDataByte(APDS9960_GPENTH, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1434,13 +1434,13 @@ bool glibr::setGestureEnterThresh(uint8_t threshold)
 uint8_t glibr::getGestureExitThresh()
 {
     uint8_t val;
-    
+
     /* Read value from GEXTH register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GEXTH);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GEXTH, val) ) {
         val = 0;
     }
-    
+
     return val;
 }
 
@@ -1455,7 +1455,7 @@ bool glibr::setGestureExitThresh(uint8_t threshold)
     if( I2CwriteByte(APDS9960_I2C_ADDR, APDS9960_GEXTH, threshold)){//!wireWriteDataByte(APDS9960_GEXTH, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1473,16 +1473,16 @@ bool glibr::setGestureExitThresh(uint8_t threshold)
 uint8_t glibr::getGestureGain()
 {
     uint8_t val;
-    
+
     /* Read value from GCONF2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF2, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out GGAIN bits */
     val = (val >> 5) & 0x03;//0b00000011;
-    
+
     return val;
 }
 
@@ -1501,24 +1501,24 @@ uint8_t glibr::getGestureGain()
 bool glibr::setGestureGain(uint8_t gain)
 {
     uint8_t val;
-    
+
     /* Read value from GCONF2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF2, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     gain &= 0x03;//0b00000011;
     gain = gain << 5;
     val &= 0x9F;//0b10011111;
     val |= gain;
-    
+
     /* Write register value back into GCONF2 register */
     if( I2CwriteByte(APDS9960_I2C_ADDR, APDS9960_GCONF2, val)){//!wireWriteDataByte(APDS9960_GCONF2, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1536,16 +1536,16 @@ bool glibr::setGestureGain(uint8_t gain)
 uint8_t glibr::getGestureLEDDrive()
 {
     uint8_t val;
-    
+
     /* Read value from GCONF2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF2, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out GLDRIVE bits */
     val = (val >> 3) & 0x03;//0b00000011;
-    
+
     return val;
 }
 
@@ -1564,24 +1564,24 @@ uint8_t glibr::getGestureLEDDrive()
 bool glibr::setGestureLEDDrive(uint8_t drive)
 {
     uint8_t val;
-    
+
     /* Read value from GCONF2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF2, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     drive &= 0x03;//0b00000011;
     drive = drive << 3;
     val &= 0xE7;//0b11100111;
     val |= drive;
-    
+
     /* Write register value back into GCONF2 register */
     if( I2CwriteByte(APDS9960_I2C_ADDR, APDS9960_GCONF2, val)){//!wireWriteDataByte(APDS9960_GCONF2, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1603,16 +1603,16 @@ bool glibr::setGestureLEDDrive(uint8_t drive)
 uint8_t glibr::getGestureWaitTime()
 {
     uint8_t val;
-    
+
     /* Read value from GCONF2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF2, val) ) {
         return ERROR;
     }
-    
+
     /* Mask out GWTIME bits */
     val &= 0x07;//0b00000111;
-    
+
     return val;
 }
 
@@ -1647,7 +1647,7 @@ uint8_t glibr::getGestureWaitTime()
 bool glibr::setGestureWaitTime(uint8_t time)
 {
     uint8_t val;
-    
+
     /* Read value from GCONF2 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF2);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF2, val) ) {
@@ -1656,12 +1656,12 @@ bool glibr::setGestureWaitTime(uint8_t time)
     /* if( !wireReadDataByte(APDS9960_GCONF2, val) ) {
         return false;
     } */
-    
+
     /* Set bits in register to given value */
     time &= 0x07;//0b00000111;
     val &= 0xF8;//0b11111000;
     val |= time;
-    
+
     /* Write register value back into GCONF2 register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_GCONF2,val)){//!wireWriteDataByte(APDS9960_GCONF2, val) ) {
         return false;
@@ -1682,21 +1682,21 @@ bool glibr::getLightIntLowThreshold(uint16_t &threshold)
 {
     uint8_t val_byte;
     threshold = 0;
-    
+
     /* Read value from ambient light low threshold, low byte register */
     val_byte = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_AILTL);
     if( val_byte == ERROR){//!wireReadDataByte(APDS9960_AILTL, val_byte) ) {
         return false;
     }
     threshold = val_byte;
-    
+
     /* Read value from ambient light low threshold, high byte register */
     val_byte = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_AILTH);
     if( val_byte == ERROR){//!wireReadDataByte(APDS9960_AILTH, val_byte) ) {
         return false;
     }
     threshold = threshold + ((uint16_t)val_byte << 8);
-    
+
     return true;
 }
 
@@ -1710,21 +1710,21 @@ bool glibr::setLightIntLowThreshold(uint16_t threshold)
 {
     uint8_t val_low;
     uint8_t val_high;
-    
+
     /* Break 16-bit threshold into 2 8-bit values */
     val_low = threshold & 0x00FF;
     val_high = (threshold & 0xFF00) >> 8;
-    
+
     /* Write low byte */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_AILTL,val_low)){//!wireWriteDataByte(APDS9960_AILTL, val_low) ) {
         return false;
     }
-    
+
     /* Write high byte */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_AILTH,val_high)){//!wireWriteDataByte(APDS9960_AILTH, val_high) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1738,21 +1738,21 @@ bool glibr::getLightIntHighThreshold(uint16_t &threshold)
 {
     uint8_t val_byte;
     threshold = 0;
-    
+
     /* Read value from ambient light high threshold, low byte register */
     val_byte = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_AIHTL);
     if( val_byte == ERROR){//!wireReadDataByte(APDS9960_AIHTL, val_byte) ) {
         return false;
     }
     threshold = val_byte;
-    
+
     /* Read value from ambient light high threshold, high byte register */
     val_byte = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_AIHTH);
     if( val_byte == ERROR){//!wireReadDataByte(APDS9960_AIHTH, val_byte) ) {
         return false;
     }
     threshold = threshold + ((uint16_t)val_byte << 8);
-    
+
     return true;
 }
 
@@ -1766,21 +1766,21 @@ bool glibr::setLightIntHighThreshold(uint16_t threshold)
 {
     uint8_t val_low;
     uint8_t val_high;
-    
+
     /* Break 16-bit threshold into 2 8-bit values */
     val_low = threshold & 0x00FF;
     val_high = (threshold & 0xFF00) >> 8;
-    
+
     /* Write low byte */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_AIHTL,val_low)){//!wireWriteDataByte(APDS9960_AIHTL, val_low) ) {
         return false;
     }
-    
+
     /* Write high byte */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_AIHTH,val_high)){//!wireWriteDataByte(APDS9960_AIHTH, val_high) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1793,13 +1793,13 @@ bool glibr::setLightIntHighThreshold(uint16_t threshold)
 bool glibr::getProximityIntLowThreshold(uint8_t &threshold)
 {
     threshold = 0;
-    
+
     /* Read value from proximity low threshold register */
     threshold = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_PILT);
     if( threshold == ERROR){//!wireReadDataByte(APDS9960_PILT, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1811,15 +1811,15 @@ bool glibr::getProximityIntLowThreshold(uint8_t &threshold)
  */
 bool glibr::setProximityIntLowThreshold(uint8_t threshold)
 {
-    
+
     /* Write threshold value to register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_PILT,threshold)){//!wireWriteDataByte(APDS9960_PILT, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
-    
+
 /**
  * @brief Gets the high threshold for proximity interrupts
  *
@@ -1829,13 +1829,13 @@ bool glibr::setProximityIntLowThreshold(uint8_t threshold)
 bool glibr::getProximityIntHighThreshold(uint8_t &threshold)
 {
     threshold = 0;
-    
+
     /* Read value from proximity low threshold register */
     threshold = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_PIHT);
     if( threshold == ERROR){//!wireReadDataByte(APDS9960_PIHT, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1847,12 +1847,12 @@ bool glibr::getProximityIntHighThreshold(uint8_t &threshold)
  */
 bool glibr::setProximityIntHighThreshold(uint8_t threshold)
 {
-    
+
     /* Write threshold value to register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_PIHT,threshold)){//!wireWriteDataByte(APDS9960_PIHT, threshold) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1864,16 +1864,16 @@ bool glibr::setProximityIntHighThreshold(uint8_t threshold)
 uint8_t glibr::getAmbientLightIntEnable()
 {
     uint8_t val;
-    
+
     /* Read value from ENABLE register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_ENABLE);
     if( val == ERROR){//!wireReadDataByte(APDS9960_ENABLE, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out AIEN bit */
     val = (val >> 4) & 0x01;//0b00000001;
-    
+
     return val;
 }
 
@@ -1886,24 +1886,24 @@ uint8_t glibr::getAmbientLightIntEnable()
 bool glibr::setAmbientLightIntEnable(uint8_t enable)
 {
     uint8_t val;
-    
+
     /* Read value from ENABLE register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_ENABLE);
     if( val == ERROR){//!wireReadDataByte(APDS9960_ENABLE, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     enable &= 0x01;//0b00000001;
     enable = enable << 4;
     val &= 0xEF;//0b11101111;
     val |= enable;
-    
+
     /* Write register value back into ENABLE register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_ENABLE,val)){//!wireWriteDataByte(APDS9960_ENABLE, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1915,16 +1915,16 @@ bool glibr::setAmbientLightIntEnable(uint8_t enable)
 uint8_t glibr::getProximityIntEnable()
 {
     uint8_t val;
-    
+
     /* Read value from ENABLE register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_ENABLE);
     if( val == ERROR){//!wireReadDataByte(APDS9960_ENABLE, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out PIEN bit */
     val = (val >> 5) & 0x01;//0b00000001;
-    
+
     return val;
 }
 
@@ -1937,24 +1937,24 @@ uint8_t glibr::getProximityIntEnable()
 bool glibr::setProximityIntEnable(uint8_t enable)
 {
     uint8_t val;
-    
+
     /* Read value from ENABLE register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_ENABLE);
     if( val == ERROR){//!wireReadDataByte(APDS9960_ENABLE, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     enable &= 0x01;//0b00000001;
     enable = enable << 5;
     val &= 0xDF;//0b11011111;
     val |= enable;
-    
+
     /* Write register value back into ENABLE register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_ENABLE,val)){//!wireWriteDataByte(APDS9960_ENABLE, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1966,16 +1966,16 @@ bool glibr::setProximityIntEnable(uint8_t enable)
 uint8_t glibr::getGestureIntEnable()
 {
     uint8_t val;
-    
+
     /* Read value from GCONF4 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF4);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF4, val) ) {
         return ERROR;
     }
-    
+
     /* Shift and mask out GIEN bit */
     val = (val >> 1) & 0x01;//0b00000001;
-    
+
     return val;
 }
 
@@ -1988,24 +1988,24 @@ uint8_t glibr::getGestureIntEnable()
 bool glibr::setGestureIntEnable(uint8_t enable)
 {
     uint8_t val;
-    
+
     /* Read value from GCONF4 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF4);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF4, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     enable &= 0x01;//0b00000001;
     enable = enable << 1;
     val &= 0xFD;//0b11111101;
     val |= enable;
-    
+
     /* Write register value back into GCONF4 register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_GCONF4,val)){//!wireWriteDataByte(APDS9960_GCONF4, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -2021,7 +2021,7 @@ bool glibr::clearAmbientLightInt()
     if( throwaway == ERROR){//!wireReadDataByte(APDS9960_AICLEAR, throwaway) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -2037,7 +2037,7 @@ bool glibr::clearProximityInt()
     if( throwaway == ERROR){//!wireReadDataByte(APDS9960_PICLEAR, throwaway) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -2049,16 +2049,16 @@ bool glibr::clearProximityInt()
 uint8_t glibr::getGestureMode()
 {
     uint8_t val;
-    
+
     /* Read value from GCONF4 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF4);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF4, val) ) {
         return ERROR;
     }
-    
+
     /* Mask out GMODE bit */
     val &= 0x01;//0b00000001;
-    
+
     return val;
 }
 
@@ -2071,23 +2071,23 @@ uint8_t glibr::getGestureMode()
 bool glibr::setGestureMode(uint8_t mode)
 {
     uint8_t val;
-    
+
     /* Read value from GCONF4 register */
     val = I2CreadByte(APDS9960_I2C_ADDR, APDS9960_GCONF4);
     if( val == ERROR){//!wireReadDataByte(APDS9960_GCONF4, val) ) {
         return false;
     }
-    
+
     /* Set bits in register to given value */
     mode &= 0x01;//0b00000001;
     val &= 0xFE;//0b11111110;
     val |= mode;
-    
+
     /* Write register value back into GCONF4 register */
     if( I2CwriteByte(APDS9960_I2C_ADDR,APDS9960_GCONF4,val)){//!wireWriteDataByte(APDS9960_GCONF4, val) ) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -2096,7 +2096,7 @@ bool glibr::setGestureMode(uint8_t mode)
 
 
 int glibr::I2CwriteByte(char address, char subAddress, char data)
-{   
+{
     int ret;
     char cmd[2] = {subAddress, data};
     ret=i2c.write(address<<1, cmd, 2);  //if ret is 1, then not acked.
@@ -2108,15 +2108,15 @@ int glibr::I2CwriteByte(char address, char subAddress, char data)
 uint8_t glibr::I2CreadByte(char address, char subAddress)
 {
     char data; // store the register data
-    
+
     if(i2c.write(address<<1, &subAddress, 1, true)){
         return ERROR;   //7 bit   //not acked
-    } 
+    }
     if(i2c.read(address<<1, &data, 1)){    /////CHANGED THIS NEED TO TEST.
         return ERROR;
     }
-        
-    
+
+
     //i2c.read(address<<1, &data, 1);
     return data;
 
@@ -2135,17 +2135,17 @@ int glibr::I2CReadDataBlock(char address, char subAddress, char *data, unsigned 
   //  unsigned char i = 0;
 
     /* Indicate which register we want to read from */
-   
+
       if(i2c.write(address<<1, &subAddress, 1, true)){
         return -1;   //7 bit   //not acked
-      } 
-    
+      }
+
     /* Read block data */
-     
+
     if(i2c.read(address<<1, data, len)){
         return -1;
     }
-    
+
     return 1;
     //Wire.requestFrom(APDS9960_I2C_ADDR, len);
     /*while (Wire.available()) {

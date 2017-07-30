@@ -3,8 +3,7 @@
 
 #include "BGLib.h"
 
-#define DEBUG
-#ifdef DEBUG
+#ifdef _DEBUG_
 #define DBG(...) printf (__VA_ARGS__)
 #else
 #define DBG(...) (void)0
