@@ -1,5 +1,6 @@
 From kibana:5.2.2
 
+ADD ./sources.list /etc/apt/sources.list
 RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install patch
 ADD ./images/homesense-logo-text.svg /usr/share/kibana/src/ui/public/images/homesense-logo-text.svg
 ADD ./patches/homesense-kibana.patch /usr/share/kibana/homesense-kibana.patch
