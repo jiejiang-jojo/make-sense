@@ -2,7 +2,7 @@ MakeSense
 =========
 
 This repository contains the source code developed for the ESRC funded project HomeSense.
-It helps social researchers to set up a data collection network/platform by deploying sensors into indoor environment such as homes and offices.
+It helps social researchers to set up a data collection network/platform by deploying sensors into indoor environments such as homes and offices.
 
 Folder Structure
 ----------------
