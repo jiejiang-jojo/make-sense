@@ -1,7 +1,7 @@
 // Copyright (c) 2016 by B. Runnels and T. von Eicken
 
 #include "ELClientRest.h"
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "Timer.h"
 
 typedef enum {

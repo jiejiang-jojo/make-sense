@@ -1,5 +1,5 @@
 #include "wifi.h"
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "led.h"
 #include "util.h"
 #include "config.h"

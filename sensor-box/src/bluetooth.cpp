@@ -1,5 +1,5 @@
 #include "mbed.h"
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "BGLib.h"
 #include "util.h"
 #include "bluetooth.h"

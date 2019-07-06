@@ -2,7 +2,7 @@
 #define _EL_CLIENT_H_
 
 #include "mbed.h"
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "ELClientResponse.h"
 #include "FP.h"
 

@@ -2,7 +2,7 @@
 
 #include "ELClient.h"
 #include "mbed.h"
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "Timer.h"
 
 #define SLIP_END  0300        // indicates end of packet

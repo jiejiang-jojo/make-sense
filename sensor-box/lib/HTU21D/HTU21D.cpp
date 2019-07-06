@@ -26,7 +26,7 @@
 /**
  * Includes
  */
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "HTU21D.h"
 
 HTU21D::HTU21D(PinName sda, PinName scl) {

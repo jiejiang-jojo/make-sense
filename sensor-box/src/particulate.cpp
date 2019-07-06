@@ -1,5 +1,5 @@
 #include "mbed.h"
-#include "rtos.h"
+#include "rtos/rtos.h"
 #include "sensors.h"
 #include "config.h"
 

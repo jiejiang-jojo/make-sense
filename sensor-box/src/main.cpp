@@ -3,7 +3,7 @@
  */
 
 #include <mbed.h>
-#include <rtos.h>
+#include "rtos/rtos.h"
 #include <string.h>
 #include <stdint.h>
 #include <queue>
