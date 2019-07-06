@@ -9,12 +9,12 @@ class BluetoothReading {
   BGLib _bg;
 
 public:
-  bd_addr_t * macs;
+  bd_addr * macs;
   int * rssi;
   time_t * lastseen;
 
   BluetoothReading(int num, const char * bt_macs[], BGLib bg):  _bg(bg){
-    macs = new bd_addr_t[num]();
+    macs = new bd_addr[num]();
     rssi = new int[num]();
     lastseen = new time_t[num]();
     for (int i=0; i<num; i++){

@@ -128,7 +128,7 @@ typedef int16_t    int16;
 typedef uint32_t   uint32;
 typedef int8_t     int8;
 
-typedef struct bd_addr_t {
+typedef struct bd_addr_t_ {
     uint8 addr[6];
 } bd_addr;
 
